@@ -26,6 +26,18 @@ export default async function BuilderDashboardPage() {
     where: { builderId: session.user.id, status: "live" },
   });
 
+  // Real subscription stats: count active/trialing subscriptions across all this builder's agents
+  const activeSubs = await prisma.subscription.findMany({
+    where: {
+      agent: { builderId: session.user.id },
+      status: { in: ["active", "trialing"] },
+    },
+    include: { agent: { select: { priceMonthly: true } } },
+  });
+  const totalSubscribers = activeSubs.length;
+  const grossMrr = activeSubs.reduce((sum, s) => sum + s.agent.priceMonthly, 0);
+  const netMrr = Math.round(grossMrr * 0.725); // ~72.5% builder cut
+
   const STAT_CARDS = [
     {
       label: "Listed Agents",
@@ -36,21 +48,21 @@ export default async function BuilderDashboardPage() {
     },
     {
       label: "Total Subscribers",
-      value: "0",
+      value: String(totalSubscribers),
       icon: "🏢",
       color: "#2ECC71",
-      note: "active — live in M6",
+      note: "active + trialing",
     },
     {
       label: "MRR",
-      value: "$0",
+      value: grossMrr > 0 ? `$${(grossMrr / 100).toFixed(0)}` : "$0",
       icon: "💸",
       color: "#FF9500",
-      note: "monthly recurring",
+      note: "gross monthly recurring",
     },
     {
-      label: "This Month",
-      value: "$0",
+      label: "Your Cut",
+      value: netMrr > 0 ? `$${(netMrr / 100).toFixed(0)}` : "$0",
       icon: "📈",
       color: "#9B59B6",
       note: "earned so far",
@@ -187,7 +199,7 @@ export default async function BuilderDashboardPage() {
                 className="text-xs px-2 py-0.5 rounded font-bold"
                 style={{ background: "rgba(255,149,0,0.1)", color: "#FF9500" }}
               >
-                Live in M6
+                Charts in M8
               </span>
             </div>
             <div className="bg-card border border-border rounded-xl p-6 text-center">
@@ -230,7 +242,7 @@ export default async function BuilderDashboardPage() {
                   label: "Payout Settings",
                   href: "#",
                   color: "#FF9500",
-                  badge: "M6",
+                  badge: "Soon",
                 },
                 {
                   icon: "📖",

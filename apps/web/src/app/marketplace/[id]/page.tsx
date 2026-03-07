@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { TOOLS, PRICING_MODELS } from "@/lib/agentConstants";
+import SubscribeButton from "./SubscribeButton";
 
 export const revalidate = 60;
 
@@ -35,6 +36,18 @@ export default async function AgentMarketplacePage({
   const session = await getServerSession(authOptions);
   const isAuthenticated = !!session;
   const isBuyer = session?.user.role === "buyer";
+  const stripeConfigured = !!process.env.STRIPE_SECRET_KEY;
+
+  // Check if buyer already has an active/trialing subscription
+  const isAlreadySubscribed = isBuyer
+    ? !!(await prisma.subscription.findFirst({
+        where: {
+          buyerId: session!.user.id,
+          agentId: agent.id,
+          status: { in: ["active", "trialing"] },
+        },
+      }))
+    : false;
 
   const toolIds: string[] = JSON.parse(agent.tools);
   const agentTools = TOOLS.filter((t) => toolIds.includes(t.id));
@@ -209,40 +222,15 @@ export default async function AgentMarketplacePage({
                 </div>
 
                 {/* CTA */}
-                {!isAuthenticated ? (
-                  <div className="space-y-2">
-                    <Link
-                      href={`/sign-up?role=buyer&redirect=/marketplace/${agent.id}`}
-                      className="block w-full text-center bg-primary text-black font-bold text-sm py-3 rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                      {agent.trialDays > 0
-                        ? `Start ${agent.trialDays}-Day Free Trial`
-                        : `Subscribe for ${priceDisplay}`}
-                    </Link>
-                    <Link
-                      href={`/sign-in?redirect=/marketplace/${agent.id}`}
-                      className="block w-full text-center border border-border text-dim text-xs py-2.5 rounded-lg hover:text-text-main transition-colors"
-                    >
-                      Already have an account? Sign in
-                    </Link>
-                  </div>
-                ) : isBuyer ? (
-                  <button
-                    className="w-full bg-primary text-black font-bold text-sm py-3 rounded-lg hover:bg-primary/90 transition-colors"
-                    // Wired up in M6
-                    disabled
-                    title="Subscription billing coming in M6"
-                  >
-                    Subscribe — Coming Soon
-                  </button>
-                ) : (
-                  <div
-                    className="text-center text-xs text-dim px-4 py-3 rounded-lg border"
-                    style={{ borderColor: "#1C2D40" }}
-                  >
-                    Sign in as a buyer to subscribe.
-                  </div>
-                )}
+                <SubscribeButton
+                  agentId={agent.id}
+                  priceDisplay={priceDisplay}
+                  trialDays={agent.trialDays}
+                  isAuthenticated={isAuthenticated}
+                  isBuyer={isBuyer}
+                  isAlreadySubscribed={isAlreadySubscribed}
+                  stripeConfigured={stripeConfigured}
+                />
 
                 {/* Feature list */}
                 <div className="mt-5 space-y-2 text-xs text-dim">

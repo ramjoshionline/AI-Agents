@@ -11,38 +11,61 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
+  id               String         @id @default(cuid())
+  email            String         @unique
+  password         String
+  name             String?
   // "buyer" | "builder" | "admin"
-  role      String   @default("buyer")
-  agents    Agent[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role             String         @default("buyer")
+  stripeCustomerId String?
+  agents           Agent[]
+  subscriptions    Subscription[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
 
 model Agent {
-  id           String  @id @default(cuid())
+  id           String         @id @default(cuid())
   name         String
   tagline      String
   description  String
   vertical     String
   systemPrompt String
   // JSON string: string[] of tool IDs
-  tools        String  @default("[]")
+  tools        String         @default("[]")
   // "flat" | "usage" | "tiered"
-  pricingModel String  @default("flat")
+  pricingModel String         @default("flat")
   // in cents, e.g. 19900 = $199/mo
-  priceMonthly Int     @default(0)
-  trialDays    Int     @default(0)
+  priceMonthly Int            @default(0)
+  trialDays    Int            @default(0)
   // "draft" | "review" | "live" | "rejected"
-  status       String  @default("draft")
+  status       String         @default("draft")
   // optional rejection/review notes from admin
   reviewNote   String?
 
-  builderId String
-  builder   User   @relation(fields: [builderId], references: [id], onDelete: Cascade)
+  builderId     String
+  builder       User           @relation(fields: [builderId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id      String @id @default(cuid())
+  buyerId String
+  buyer   User   @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String? @unique
+  stripeSessionId      String  @unique
+
+  // "trialing" | "active" | "past_due" | "cancelled" | "incomplete"
+  status           String    @default("active")
+  trialEndsAt      DateTime?
+  currentPeriodEnd DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
