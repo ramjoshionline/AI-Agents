@@ -1,38 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-
-const STAT_CARDS = [
-  {
-    label: "Listed Agents",
-    value: "0",
-    icon: "🤖",
-    color: "#3B9EFF",
-    note: "published",
-  },
-  {
-    label: "Total Subscribers",
-    value: "0",
-    icon: "🏢",
-    color: "#2ECC71",
-    note: "active",
-  },
-  {
-    label: "MRR",
-    value: "$0",
-    icon: "💸",
-    color: "#FF9500",
-    note: "monthly recurring",
-  },
-  {
-    label: "This Month",
-    value: "$0",
-    icon: "📈",
-    color: "#9B59B6",
-    note: "earned so far",
-  },
-];
+import { STATUS_CONFIG } from "@/lib/agentConstants";
 
 export default async function BuilderDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -40,6 +11,51 @@ export default async function BuilderDashboardPage() {
   if (session.user.role !== "builder") redirect("/dashboard/buyer");
 
   const firstName = session.user.name?.split(" ")[0] || "Builder";
+
+  // Real agent data
+  const agents = await prisma.agent.findMany({
+    where: { builderId: session.user.id },
+    orderBy: { updatedAt: "desc" },
+    take: 5,
+  });
+
+  const totalAgents = await prisma.agent.count({
+    where: { builderId: session.user.id },
+  });
+  const liveAgents = await prisma.agent.count({
+    where: { builderId: session.user.id, status: "live" },
+  });
+
+  const STAT_CARDS = [
+    {
+      label: "Listed Agents",
+      value: String(totalAgents),
+      icon: "🤖",
+      color: "#3B9EFF",
+      note: `${liveAgents} live`,
+    },
+    {
+      label: "Total Subscribers",
+      value: "0",
+      icon: "🏢",
+      color: "#2ECC71",
+      note: "active — live in M6",
+    },
+    {
+      label: "MRR",
+      value: "$0",
+      icon: "💸",
+      color: "#FF9500",
+      note: "monthly recurring",
+    },
+    {
+      label: "This Month",
+      value: "$0",
+      icon: "📈",
+      color: "#9B59B6",
+      note: "earned so far",
+    },
+  ];
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -72,10 +88,7 @@ export default async function BuilderDashboardPage() {
               </span>
               <span className="text-lg">{icon}</span>
             </div>
-            <div
-              className="text-2xl font-extrabold mb-0.5"
-              style={{ color }}
-            >
+            <div className="text-2xl font-extrabold mb-0.5" style={{ color }}>
               {value}
             </div>
             <div className="text-xs text-dim">{note}</div>
@@ -89,27 +102,81 @@ export default async function BuilderDashboardPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-white">My Agents</h2>
-              <button className="text-xs bg-primary/10 border border-primary/30 text-primary font-bold px-4 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
+              <Link
+                href="/dashboard/builder/agents/new"
+                className="text-xs bg-primary/10 border border-primary/30 text-primary font-bold px-4 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
+              >
                 + Create Agent
-              </button>
+              </Link>
             </div>
 
-            <div
-              className="rounded-xl border-2 border-dashed p-10 text-center"
-              style={{ borderColor: "#1C2D40" }}
-            >
-              <div className="text-4xl mb-4">🤖</div>
-              <div className="text-sm font-bold text-white mb-2">
-                No agents listed yet
+            {agents.length === 0 ? (
+              <div
+                className="rounded-xl border-2 border-dashed p-10 text-center"
+                style={{ borderColor: "#1C2D40" }}
+              >
+                <div className="text-4xl mb-4">🤖</div>
+                <div className="text-sm font-bold text-white mb-2">
+                  No agents listed yet
+                </div>
+                <p className="text-xs text-dim leading-relaxed max-w-xs mx-auto mb-6">
+                  Create your first agent, set your price, and submit for
+                  review.
+                </p>
+                <Link
+                  href="/dashboard/builder/agents/new"
+                  className="inline-flex items-center gap-2 bg-blue/10 border border-blue/30 text-blue font-bold text-xs px-6 py-2.5 rounded-lg hover:bg-blue/20 transition-colors"
+                >
+                  Create Your First Agent →
+                </Link>
               </div>
-              <p className="text-xs text-dim leading-relaxed max-w-xs mx-auto mb-6">
-                Create your first agent, set your price, and submit for review.
-                Once approved, it goes live in the marketplace.
-              </p>
-              <button className="inline-flex items-center gap-2 bg-blue/10 border border-blue/30 text-blue font-bold text-xs px-6 py-2.5 rounded-lg hover:bg-blue/20 transition-colors">
-                Create Your First Agent →
-              </button>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                {agents.map((agent) => {
+                  const statusCfg =
+                    STATUS_CONFIG[agent.status] ?? STATUS_CONFIG.draft;
+                  return (
+                    <Link
+                      key={agent.id}
+                      href={`/dashboard/builder/agents/${agent.id}`}
+                      className="flex items-center gap-4 bg-card border border-border rounded-xl px-5 py-4 card-hover group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-white group-hover:text-primary transition-colors truncate">
+                            {agent.name}
+                          </span>
+                          <span
+                            className="text-xs px-2 py-0.5 rounded font-bold shrink-0"
+                            style={{
+                              background: statusCfg.bg,
+                              color: statusCfg.color,
+                            }}
+                          >
+                            {statusCfg.label}
+                          </span>
+                        </div>
+                        <div className="text-xs text-dim mt-0.5 truncate">
+                          {agent.vertical} · $
+                          {(agent.priceMonthly / 100).toFixed(0)}/mo
+                        </div>
+                      </div>
+                      <span className="text-dim group-hover:text-primary transition-colors text-sm shrink-0">
+                        →
+                      </span>
+                    </Link>
+                  );
+                })}
+                {totalAgents > 5 && (
+                  <Link
+                    href="/dashboard/builder/agents"
+                    className="block text-center text-xs text-primary hover:text-primary/80 transition-colors py-3"
+                  >
+                    View all {totalAgents} agents →
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Earnings Overview (placeholder) */}
@@ -120,18 +187,17 @@ export default async function BuilderDashboardPage() {
                 className="text-xs px-2 py-0.5 rounded font-bold"
                 style={{ background: "rgba(255,149,0,0.1)", color: "#FF9500" }}
               >
-                Coming in M6
+                Live in M6
               </span>
             </div>
-            <div
-              className="bg-card border border-border rounded-xl p-6 text-center"
-            >
+            <div className="bg-card border border-border rounded-xl p-6 text-center">
               <div
-                className="h-32 rounded-lg flex items-center justify-center"
+                className="h-28 rounded-lg flex items-center justify-center"
                 style={{ background: "#111A28" }}
               >
                 <p className="text-xs text-dim">
-                  Earnings chart will appear here once you have active subscribers.
+                  Earnings chart will appear here once you have active
+                  subscribers.
                 </p>
               </div>
             </div>
@@ -140,31 +206,39 @@ export default async function BuilderDashboardPage() {
 
         {/* Right column */}
         <div className="space-y-6">
-          {/* Recent Activity */}
-          <div>
-            <h2 className="text-sm font-bold text-white mb-4">
-              Recent Activity
-            </h2>
-            <div className="bg-card border border-border rounded-xl p-5">
-              <div className="text-center py-4">
-                <div className="text-2xl mb-2">📊</div>
-                <p className="text-xs text-dim leading-relaxed">
-                  Subscriber activity and usage data will appear here once your
-                  first agent is live.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Builder Quick Actions */}
+          {/* Quick Actions */}
           <div>
             <h2 className="text-sm font-bold text-white mb-4">Quick Actions</h2>
             <div className="space-y-2">
               {[
-                { icon: "🔨", label: "Create New Agent", href: "#", color: "#3B9EFF", badge: "M3" },
-                { icon: "📖", label: "Builder Docs", href: "/builders", color: "#2ECC71" },
-                { icon: "💸", label: "Payout Settings", href: "#", color: "#FF9500", badge: "M6" },
-                { icon: "⚙️", label: "Account Settings", href: "#", color: "#9B59B6", badge: "M7" },
+                {
+                  icon: "🔨",
+                  label: "Create New Agent",
+                  href: "/dashboard/builder/agents/new",
+                  color: "#3B9EFF",
+                  badge: null,
+                },
+                {
+                  icon: "📋",
+                  label: "View All Agents",
+                  href: "/dashboard/builder/agents",
+                  color: "#2ECC71",
+                  badge: null,
+                },
+                {
+                  icon: "💸",
+                  label: "Payout Settings",
+                  href: "#",
+                  color: "#FF9500",
+                  badge: "M6",
+                },
+                {
+                  icon: "📖",
+                  label: "Builder Guide",
+                  href: "/builders",
+                  color: "#9B59B6",
+                  badge: null,
+                },
               ].map(({ icon, label, href, color, badge }) => (
                 <Link
                   key={label}
@@ -190,7 +264,7 @@ export default async function BuilderDashboardPage() {
             </div>
           </div>
 
-          {/* Revenue model reminder */}
+          {/* Revenue model */}
           <div
             className="rounded-xl p-4 border"
             style={{
@@ -220,41 +294,40 @@ export default async function BuilderDashboardPage() {
       </div>
 
       {/* Builder onboarding */}
-      <div
-        className="mt-8 rounded-xl border p-6"
-        style={{
-          background: "rgba(59,158,255,0.04)",
-          borderColor: "rgba(59,158,255,0.2)",
-        }}
-      >
-        <h2 className="text-sm font-bold text-white mb-4">
-          🚀 Ship your first agent
-        </h2>
-        <div className="grid sm:grid-cols-4 gap-4">
-          {[
-            { step: "1", title: "Create Agent", desc: "Define behaviour, tools, pricing", milestone: "M3" },
-            { step: "2", title: "Test in Sandbox", desc: "Chat with it before submitting", milestone: "M4" },
-            { step: "3", title: "Submit for Review", desc: "We QA it within 48h", milestone: "M3" },
-            { step: "4", title: "Go Live & Earn", desc: "Listed in marketplace, earn MRR", milestone: "M5" },
-          ].map(({ step, title, desc, milestone }) => (
-            <div key={step} className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full border-2 border-blue/40 bg-blue/10 flex items-center justify-center text-blue text-xs font-bold shrink-0 mt-0.5">
-                {step}
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">{title}</div>
-                <div className="text-xs text-dim mt-0.5">{desc}</div>
-                <div
-                  className="text-xs mt-1 font-bold"
-                  style={{ color: "#3B9EFF" }}
+      {totalAgents === 0 && (
+        <div
+          className="mt-8 rounded-xl border p-6"
+          style={{
+            background: "rgba(59,158,255,0.04)",
+            borderColor: "rgba(59,158,255,0.2)",
+          }}
+        >
+          <h2 className="text-sm font-bold text-white mb-4">
+            🚀 Ship your first agent
+          </h2>
+          <div className="grid sm:grid-cols-4 gap-4">
+            {[
+              { step: "1", title: "Create Agent", desc: "Define behaviour, tools, pricing", done: true },
+              { step: "2", title: "Test in Sandbox", desc: "Chat with it before submitting", done: false },
+              { step: "3", title: "Submit for Review", desc: "We QA it within 48h", done: false },
+              { step: "4", title: "Go Live & Earn", desc: "Listed in marketplace, earn MRR", done: false },
+            ].map(({ step, title, desc, done }) => (
+              <div key={step} className="flex items-start gap-3">
+                <Link
+                  href="/dashboard/builder/agents/new"
+                  className="w-6 h-6 rounded-full border-2 border-blue/40 bg-blue/10 flex items-center justify-center text-blue text-xs font-bold shrink-0 mt-0.5 hover:border-blue transition-colors"
                 >
-                  {milestone}
+                  {done ? "→" : step}
+                </Link>
+                <div>
+                  <div className="text-xs font-bold text-white">{title}</div>
+                  <div className="text-xs text-dim mt-0.5">{desc}</div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
