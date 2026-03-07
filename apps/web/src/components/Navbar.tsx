@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import AuthButton from "./AuthButton";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -39,18 +40,7 @@ export default function Navbar() {
 
         {/* CTA buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="text-xs text-dim hover:text-text-main transition-colors px-3 py-1.5"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/marketplace"
-            className="text-xs bg-primary text-black font-bold px-4 py-1.5 rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Browse Agents
-          </Link>
+          <AuthButton />
         </div>
 
         {/* Mobile toggle */}
