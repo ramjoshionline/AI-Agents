@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #070B0F;
+  --primary: #FF9500;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #070B0F;
+  color: #BDD0E0;
+  font-family: 'IBM Plex Mono', 'Fira Code', monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #070B0F;
+}
+::-webkit-scrollbar-thumb {
+  background: #1C2D40;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF9500;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, #FF9500 0%, #FFB84D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow utilities */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(255, 149, 0, 0.15);
+}
+.glow-green {
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.15);
+}
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 158, 255, 0.15);
+}
+
+/* Card hover */
+.card-hover {
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+}
+
+/* Animated border */
+@keyframes pulse-border {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* Grid background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(28, 45, 64, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 45, 64, 0.3) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
