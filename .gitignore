@@ -32,3 +32,4 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+apps/web/prisma/dev.db
