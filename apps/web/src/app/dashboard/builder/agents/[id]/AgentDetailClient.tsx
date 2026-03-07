@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function AgentDetailClient({
   agentId,
@@ -38,6 +39,14 @@ export default function AgentDetailClient({
 
   return (
     <div className="flex items-center gap-2 shrink-0 flex-wrap">
+      {/* Test in Sandbox */}
+      <Link
+        href={`/dashboard/builder/agents/${agentId}/sandbox`}
+        className="text-xs bg-green/10 border border-green/30 text-green font-bold px-4 py-2 rounded-lg hover:bg-green/20 transition-colors"
+      >
+        🧪 Test in Sandbox
+      </Link>
+
       {/* Submit for review */}
       {["draft", "rejected"].includes(status) && (
         <button
