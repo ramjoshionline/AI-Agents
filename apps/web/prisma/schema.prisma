@@ -22,6 +22,7 @@ model User {
   notifPrefs       String         @default("{}")
   agents           Agent[]
   subscriptions    Subscription[]
+  reviews          Review[]       @relation("ReviewsByBuyer")
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -48,6 +49,7 @@ model Agent {
   builderId     String
   builder       User           @relation(fields: [builderId], references: [id], onDelete: Cascade)
   subscriptions Subscription[]
+  reviews       Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -73,6 +75,23 @@ model Subscription {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id      String @id @default(cuid())
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  buyerId String
+  buyer   User   @relation("ReviewsByBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  // 1–5
+  rating  Int
+  comment String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([agentId, buyerId])
 }
 
 model Integration {

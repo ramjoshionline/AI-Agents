@@ -6,8 +6,9 @@ import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { TOOLS, PRICING_MODELS } from "@/lib/agentConstants";
 import SubscribeButton from "./SubscribeButton";
+import ReviewSection from "./ReviewSection";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function AgentMarketplacePage({
   params,
@@ -49,6 +50,42 @@ export default async function AgentMarketplacePage({
         },
       }))
     : false;
+
+  // Has the buyer ever subscribed (needed to allow review)?
+  const hasEverSubscribed = isBuyer
+    ? !!(await prisma.subscription.findFirst({
+        where: { buyerId: session!.user.id, agentId: agent.id },
+      }))
+    : false;
+
+  // Load reviews
+  const reviews = await prisma.review.findMany({
+    where: { agentId: agent.id },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      buyer: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Existing review by this buyer
+  const myReview = isBuyer
+    ? reviews.find((r) => false) // populated below from a separate check
+    : null;
+  const myReviewFull = isBuyer
+    ? await prisma.review.findUnique({
+        where: { agentId_buyerId: { agentId: agent.id, buyerId: session!.user.id } },
+        select: { rating: true, comment: true },
+      })
+    : null;
+
+  const avgRating =
+    reviews.length > 0
+      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+      : null;
 
   const toolIds: string[] = JSON.parse(agent.tools);
   const agentTools = TOOLS.filter((t) => toolIds.includes(t.id));
@@ -97,15 +134,27 @@ export default async function AgentMarketplacePage({
                 {agent.name}
               </h1>
               <p className="text-sm text-dim leading-relaxed mb-2">{agent.tagline}</p>
-              <p className="text-xs text-dim">
-                By{" "}
-                <Link
-                  href={`/builders/${agent.builder.id}`}
-                  className="text-primary hover:text-primary/80 transition-colors"
-                >
-                  {agent.builder.name ?? "Verified Builder"}
-                </Link>
-              </p>
+              <div className="flex items-center gap-4 flex-wrap">
+                <p className="text-xs text-dim">
+                  By{" "}
+                  <Link
+                    href={`/builders/${agent.builder.id}`}
+                    className="text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {agent.builder.name ?? "Verified Builder"}
+                  </Link>
+                </p>
+                {avgRating !== null && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs" style={{ color: "#FF9500" }}>
+                      {"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}
+                    </span>
+                    <span className="text-xs text-dim">
+                      {avgRating} ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Description */}
@@ -200,6 +249,19 @@ export default async function AgentMarketplacePage({
                 ))}
               </div>
             </div>
+            {/* Reviews */}
+            <ReviewSection
+              agentId={agent.id}
+              reviews={reviews.map((r) => ({
+                id: r.id,
+                rating: r.rating,
+                comment: r.comment,
+                createdAt: r.createdAt.toISOString(),
+                buyerName: r.buyer.name ?? "Subscriber",
+              }))}
+              canReview={hasEverSubscribed}
+              myReview={myReviewFull ?? null}
+            />
           </div>
 
           {/* RIGHT — Pricing card (sticky) */}

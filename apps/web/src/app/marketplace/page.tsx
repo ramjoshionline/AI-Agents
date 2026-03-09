@@ -21,16 +21,26 @@ export default async function MarketplacePage() {
       priceMonthly: true,
       trialDays: true,
       createdAt: true,
+      reviews: { select: { rating: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  const totalAgents = agents.length;
-  const verticalCount = new Set(agents.map((a) => a.vertical)).size;
+  const agentsWithRating = agents.map(({ reviews, ...rest }) => ({
+    ...rest,
+    avgRating:
+      reviews.length > 0
+        ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+        : null,
+    reviewCount: reviews.length,
+  }));
+
+  const totalAgents = agentsWithRating.length;
+  const verticalCount = Array.from(new Set(agentsWithRating.map((a) => a.vertical))).length;
   const avgPrice =
     totalAgents > 0
       ? Math.round(
-          agents.reduce((sum, a) => sum + a.priceMonthly, 0) / totalAgents / 100
+          agentsWithRating.reduce((sum, a) => sum + a.priceMonthly, 0) / totalAgents / 100
         )
       : 0;
 
@@ -72,7 +82,7 @@ export default async function MarketplacePage() {
 
       {/* Listing */}
       <div className="max-w-6xl mx-auto px-6 py-10">
-        <MarketplaceClient agents={agents} />
+        <MarketplaceClient agents={agentsWithRating} />
       </div>
 
       {/* Builder CTA */}

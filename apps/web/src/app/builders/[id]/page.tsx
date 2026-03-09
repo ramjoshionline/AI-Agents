@@ -41,6 +41,7 @@ export default async function BuilderProfilePage({
             where: { status: { in: ["active", "trialing"] } },
             select: { id: true },
           },
+          reviews: { select: { rating: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -166,6 +167,14 @@ export default async function BuilderProfilePage({
             const tools: string[] = JSON.parse(agent.tools || "[]");
             const price = `$${(agent.priceMonthly / 100).toFixed(0)}/mo`;
             const subCount = agent.subscriptions.length;
+            const avgRating =
+              agent.reviews.length > 0
+                ? Math.round(
+                    (agent.reviews.reduce((s: number, r: { rating: number }) => s + r.rating, 0) /
+                      agent.reviews.length) *
+                      10
+                  ) / 10
+                : null;
 
             return (
               <Link
@@ -224,6 +233,12 @@ export default async function BuilderProfilePage({
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-dim">
+                    {avgRating !== null && (
+                      <span className="flex items-center gap-0.5">
+                        <span style={{ color: "#FF9500" }}>★</span>
+                        <span>{avgRating}</span>
+                      </span>
+                    )}
                     {subCount > 0 && (
                       <span>
                         <span style={{ color: "#2ECC71" }}>{subCount}</span>{" "}

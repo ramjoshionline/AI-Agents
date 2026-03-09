@@ -14,6 +14,8 @@ type Agent = {
   pricingModel: string;
   priceMonthly: number;
   trialDays: number;
+  avgRating: number | null;
+  reviewCount: number;
 };
 
 function AgentCard({ agent }: { agent: Agent }) {
@@ -76,9 +78,18 @@ function AgentCard({ agent }: { agent: Agent }) {
           <span className="text-lg font-extrabold text-primary">${price}</span>
           <span className="text-xs text-dim">/mo</span>
         </div>
-        <span className="text-xs text-blue group-hover:text-primary transition-colors font-bold">
-          View Agent →
-        </span>
+        <div className="flex items-center gap-2">
+          {agent.avgRating !== null && (
+            <span className="text-xs text-dim flex items-center gap-0.5">
+              <span style={{ color: "#FF9500" }}>★</span>
+              {agent.avgRating}
+              <span className="text-dim/60">({agent.reviewCount})</span>
+            </span>
+          )}
+          <span className="text-xs text-blue group-hover:text-primary transition-colors font-bold">
+            View →
+          </span>
+        </div>
       </div>
     </Link>
   );
