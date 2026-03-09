@@ -1,5 +1,8 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { prisma } from "@/lib/prisma";
 
 const STEPS = [
   {
@@ -74,7 +77,50 @@ const EARNINGS_EXAMPLES = [
   { subs: 500, price: 299, take: 74, monthly: 110630, annual: 1327560 },
 ];
 
-export default function BuildersPage() {
+export default async function BuildersPage() {
+  // Fetch builders who have at least one live agent
+  const buildersRaw = await prisma.user.findMany({
+    where: {
+      role: "builder",
+      agents: { some: { status: "live" } },
+    },
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      agents: {
+        where: { status: "live" },
+        select: {
+          id: true,
+          vertical: true,
+          subscriptions: {
+            where: { status: { in: ["active", "trialing"] } },
+            select: { id: true },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const builders = buildersRaw.map((b) => ({
+    id: b.id,
+    name: b.name ?? "Anonymous Builder",
+    initials: (b.name ?? "AB")
+      .split(" ")
+      .slice(0, 2)
+      .map((w: string) => w[0])
+      .join("")
+      .toUpperCase(),
+    liveAgents: b.agents.length,
+    totalSubs: b.agents.reduce((sum, a) => sum + a.subscriptions.length, 0),
+    verticals: Array.from(new Set(b.agents.map((a) => a.vertical))).slice(0, 2),
+    memberSince: new Date(b.createdAt).toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    }),
+  }));
+
   return (
     <div className="min-h-screen bg-bg font-mono text-text-main">
       <Navbar />
@@ -258,6 +304,69 @@ export default function BuildersPage() {
             ))}
           </div>
         </div>
+
+        {/* Meet Our Builders */}
+        {builders.length > 0 && (
+          <div className="mb-20">
+            <div className="text-center mb-10">
+              <div className="text-xs text-primary tracking-widest uppercase mb-3">
+                Our Community
+              </div>
+              <h2 className="text-xl md:text-2xl font-extrabold text-white">
+                Meet Our Builders
+              </h2>
+              <p className="text-xs text-dim mt-2">
+                Verified agents built by independent developers and agencies.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {builders.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/builders/${b.id}`}
+                  className="group bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-all"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold shrink-0"
+                      style={{ background: "rgba(59,158,255,0.12)", color: "#3B9EFF" }}
+                    >
+                      {b.initials}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-white truncate group-hover:text-primary transition-colors">
+                        {b.name}
+                      </div>
+                      <div className="text-xs text-dim">Member since {b.memberSince}</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {b.verticals.map((v) => (
+                      <span
+                        key={v}
+                        className="text-xs px-1.5 py-0.5 rounded"
+                        style={{ background: "rgba(74,101,128,0.15)", color: "#4A6580" }}
+                      >
+                        {v}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-dim">
+                      <span className="font-bold" style={{ color: "#3B9EFF" }}>{b.liveAgents}</span> agent{b.liveAgents !== 1 ? "s" : ""}
+                    </span>
+                    {b.totalSubs > 0 && (
+                      <span className="text-dim">
+                        <span className="font-bold" style={{ color: "#2ECC71" }}>{b.totalSubs}</span> subscriber{b.totalSubs !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    <span className="text-primary group-hover:translate-x-0.5 transition-transform inline-block">→</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* CTA */}
         <div

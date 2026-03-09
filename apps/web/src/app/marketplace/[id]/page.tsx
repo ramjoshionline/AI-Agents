@@ -27,7 +27,8 @@ export default async function AgentMarketplacePage({
       priceMonthly: true,
       trialDays: true,
       createdAt: true,
-      // Never expose systemPrompt or builderId
+      // Never expose systemPrompt; builderId exposed only to link to public profile
+      builder: { select: { id: true, name: true } },
     },
   });
 
@@ -95,7 +96,16 @@ export default async function AgentMarketplacePage({
               <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-3">
                 {agent.name}
               </h1>
-              <p className="text-sm text-dim leading-relaxed">{agent.tagline}</p>
+              <p className="text-sm text-dim leading-relaxed mb-2">{agent.tagline}</p>
+              <p className="text-xs text-dim">
+                By{" "}
+                <Link
+                  href={`/builders/${agent.builder.id}`}
+                  className="text-primary hover:text-primary/80 transition-colors"
+                >
+                  {agent.builder.name ?? "Verified Builder"}
+                </Link>
+              </p>
             </div>
 
             {/* Description */}
