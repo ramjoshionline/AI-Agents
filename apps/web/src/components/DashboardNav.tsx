@@ -11,7 +11,12 @@ export default function DashboardNav() {
   const role = session?.user?.role;
 
   const navLinks =
-    role === "builder"
+    role === "admin"
+      ? [
+          { label: "Review Queue", href: "/dashboard/admin" },
+          { label: "Analytics", href: "/dashboard/admin/analytics" },
+        ]
+      : role === "builder"
       ? [
           { label: "Overview", href: "/dashboard/builder" },
           { label: "My Agents", href: "/dashboard/builder/agents" },
@@ -65,7 +70,9 @@ export default function DashboardNav() {
           <div
             className="hidden sm:flex text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider"
             style={
-              role === "builder"
+              role === "admin"
+                ? { background: "rgba(231,76,60,0.12)", color: "#E74C3C" }
+                : role === "builder"
                 ? { background: "rgba(59,158,255,0.12)", color: "#3B9EFF" }
                 : { background: "rgba(46,204,113,0.12)", color: "#2ECC71" }
             }

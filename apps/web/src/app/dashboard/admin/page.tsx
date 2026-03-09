@@ -61,6 +61,13 @@ export default async function AdminDashboardPage() {
         <p className="text-sm text-dim mt-1">
           Approve or reject agent submissions before they go live on the marketplace.
         </p>
+        <Link
+          href="/dashboard/admin/analytics"
+          className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+          style={{ background: "rgba(231,76,60,0.1)", color: "#E74C3C" }}
+        >
+          📊 View Platform Analytics →
+        </Link>
       </div>
 
       {/* Stats */}
