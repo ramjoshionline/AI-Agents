@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
         const buyerId = cs.metadata?.buyerId;
         if (!agentId || !buyerId) break;
 
+        // Validate that agent and buyer actually exist
+        const [agentExists, buyerExists] = await Promise.all([
+          prisma.agent.findUnique({ where: { id: agentId }, select: { id: true } }),
+          prisma.user.findUnique({ where: { id: buyerId }, select: { id: true } }),
+        ]);
+        if (!agentExists || !buyerExists) break;
+
         const stripeSubscriptionId =
           typeof cs.subscription === "string"
             ? cs.subscription
@@ -130,7 +137,7 @@ export async function POST(req: NextRequest) {
         break;
     }
   } catch (err) {
-    console.error("[stripe webhook] handler error:", err);
+    console.error("[stripe webhook] handler error:", err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json({ error: "Handler error" }, { status: 500 });
   }
 

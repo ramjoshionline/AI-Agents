@@ -13,12 +13,15 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => null);
-  const rating = typeof body?.rating === "number" ? Math.round(body.rating) : 0;
+  const rating =
+    typeof body?.rating === "number" && Number.isInteger(body.rating)
+      ? body.rating
+      : 0;
   const comment =
     typeof body?.comment === "string" ? body.comment.trim().slice(0, 1000) : "";
 
   if (rating < 1 || rating > 5)
-    return NextResponse.json({ error: "Rating must be 1–5" }, { status: 400 });
+    return NextResponse.json({ error: "Rating must be an integer from 1 to 5" }, { status: 400 });
 
   // Buyer must have ever subscribed (any status)
   const hasSub = await prisma.subscription.findFirst({

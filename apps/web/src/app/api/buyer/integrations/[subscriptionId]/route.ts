@@ -27,7 +27,14 @@ export async function GET(
     where: { subscriptionId: params.subscriptionId },
   });
 
-  const config = integration ? JSON.parse(integration.config) : {};
+  let config: Record<string, unknown> = {};
+  if (integration) {
+    try {
+      config = JSON.parse(integration.config);
+    } catch {
+      config = {};
+    }
+  }
   return NextResponse.json({ config });
 }
 
@@ -61,5 +68,11 @@ export async function PUT(
     create: { subscriptionId: params.subscriptionId, config: JSON.stringify(config) },
   });
 
-  return NextResponse.json({ config: JSON.parse(integration.config) });
+  let savedConfig: Record<string, unknown> = {};
+  try {
+    savedConfig = JSON.parse(integration.config);
+  } catch {
+    savedConfig = {};
+  }
+  return NextResponse.json({ config: savedConfig });
 }

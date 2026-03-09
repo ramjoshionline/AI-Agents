@@ -28,9 +28,14 @@ export async function POST(
 
   // Cancel in Stripe at period end (buyer retains access until then)
   if (sub.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
-    await getStripe().subscriptions.update(sub.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
+    try {
+      await getStripe().subscriptions.update(sub.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+    } catch (err) {
+      console.error("[cancel] Stripe update failed:", err instanceof Error ? err.message : "Unknown error");
+      // Continue — webhook will eventually sync the cancellation state
+    }
   }
 
   // Mark locally — webhook will confirm when actually deleted

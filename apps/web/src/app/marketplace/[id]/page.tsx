@@ -87,7 +87,12 @@ export default async function AgentMarketplacePage({
       ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
       : null;
 
-  const toolIds: string[] = JSON.parse(agent.tools);
+  let toolIds: string[] = [];
+  try {
+    toolIds = JSON.parse(agent.tools);
+  } catch {
+    toolIds = [];
+  }
   const agentTools = TOOLS.filter((t) => toolIds.includes(t.id));
   const pricingLabel =
     PRICING_MODELS.find((p) => p.id === agent.pricingModel)?.label ??

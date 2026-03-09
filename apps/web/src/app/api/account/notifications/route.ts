@@ -23,7 +23,12 @@ export async function PATCH(req: Request) {
     where: { id: session.user.id },
     select: { notifPrefs: true },
   });
-  const prev = JSON.parse(existing?.notifPrefs ?? "{}");
+  let prev: Record<string, unknown> = {};
+  try {
+    prev = JSON.parse(existing?.notifPrefs ?? "{}");
+  } catch {
+    prev = {};
+  }
   const next = { ...prev, ...patch };
 
   await prisma.user.update({
