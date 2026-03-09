@@ -91,8 +91,8 @@ export default async function BuyerDashboardPage({
         {[
           { label: "Active Agents", value: String(activeCount), icon: "🤖", color: "#2ECC71", note: "subscribed" },
           { label: "Monthly Spend", value: activeCount > 0 ? `$${(totalSpend / 100).toFixed(0)}/mo` : "$0", icon: "💸", color: "#FF9500", note: "billed monthly" },
-          { label: "Actions Today", value: "—", icon: "⚡", color: "#3B9EFF", note: "live in M7" },
-          { label: "Time Saved", value: "—", icon: "⏰", color: "#9B59B6", note: "live in M7" },
+          { label: "Messages Sent", value: "—", icon: "💬", color: "#3B9EFF", note: "per-session" },
+          { label: "Time Saved", value: "—", icon: "⏰", color: "#9B59B6", note: "coming soon" },
         ].map(({ label, value, icon, color, note }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
@@ -195,13 +195,19 @@ export default async function BuyerDashboardPage({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        {/* Chat (M7) */}
-                        <span
-                          className="text-xs border border-border text-dim px-3 py-1.5 rounded-lg opacity-50 cursor-not-allowed"
-                          title="Live in M7"
-                        >
-                          Chat (M7)
-                        </span>
+                        {/* Chat */}
+                        {["active", "trialing"].includes(sub.status) ? (
+                          <Link
+                            href={`/dashboard/buyer/chat/${sub.agent.id}`}
+                            className="text-xs border border-primary/40 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors font-bold"
+                          >
+                            Chat →
+                          </Link>
+                        ) : (
+                          <span className="text-xs border border-border text-dim px-3 py-1.5 rounded-lg opacity-40 cursor-not-allowed">
+                            Chat
+                          </span>
+                        )}
 
                         {/* Cancel */}
                         {["active", "trialing"].includes(sub.status) && (
@@ -224,7 +230,7 @@ export default async function BuyerDashboardPage({
               {[
                 { icon: "🛒", label: "Browse Marketplace", href: "/marketplace", color: "#FF9500", badge: null },
                 { icon: "🔌", label: "Connect Integrations", href: "#", color: "#3B9EFF", badge: "M9" },
-                { icon: "💬", label: "Chat with Agent", href: "#", color: "#2ECC71", badge: "M7" },
+                { icon: "💬", label: "Chat with Agent", href: "#chat", color: "#2ECC71", badge: null },
                 { icon: "⚙️", label: "Account Settings", href: "#", color: "#9B59B6", badge: "Soon" },
               ].map(({ icon, label, href, color, badge }) => (
                 <Link
