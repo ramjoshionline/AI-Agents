@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import ReviewActions from "./ReviewActions";
+import FeaturedToggle from "./FeaturedToggle";
 
 const STATUS_STYLE: Record<string, { label: string; color: string; bg: string }> = {
   draft:    { label: "Draft",    color: "#4A6580", bg: "rgba(74,101,128,0.15)" },
@@ -245,11 +246,16 @@ export default async function AdminDashboardPage() {
                           day: "numeric",
                         })}
                       </td>
-                      <td className="py-2.5 text-dim truncate max-w-[200px]">
+                      <td className="py-2.5 pr-4 text-dim truncate max-w-[200px]">
                         {agent.reviewNote ? (
                           <span title={agent.reviewNote}>{agent.reviewNote}</span>
                         ) : (
                           <span className="opacity-40">—</span>
+                        )}
+                      </td>
+                      <td className="py-2.5">
+                        {agent.status === "live" && (
+                          <FeaturedToggle agentId={agent.id} featured={agent.featured} />
                         )}
                       </td>
                     </tr>

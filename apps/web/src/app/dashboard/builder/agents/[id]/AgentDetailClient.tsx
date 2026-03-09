@@ -17,25 +17,20 @@ export default function AgentDetailClient({
 
   async function handleSubmit() {
     setLoading(true);
-    const res = await fetch(`/api/builder/agents/${agentId}/submit`, {
-      method: "POST",
-    });
+    const res = await fetch(`/api/builder/agents/${agentId}/submit`, { method: "POST" });
     setLoading(false);
-    if (res.ok) {
-      router.refresh();
-    }
+    if (res.ok) router.refresh();
   }
 
   async function handleDelete() {
     setLoading(true);
-    const res = await fetch(`/api/builder/agents/${agentId}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(`/api/builder/agents/${agentId}`, { method: "DELETE" });
     setLoading(false);
-    if (res.ok) {
-      router.push("/dashboard/builder/agents");
-    }
+    if (res.ok) router.push("/dashboard/builder/agents");
   }
+
+  const canEdit = ["draft", "rejected", "live"].includes(status);
+  const canSubmit = ["draft", "rejected"].includes(status);
 
   return (
     <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -47,8 +42,8 @@ export default function AgentDetailClient({
         🧪 Test in Sandbox
       </Link>
 
-      {/* Submit for review */}
-      {["draft", "rejected"].includes(status) && (
+      {/* Submit for review (draft/rejected) */}
+      {canSubmit && (
         <button
           onClick={handleSubmit}
           disabled={loading}
@@ -58,28 +53,46 @@ export default function AgentDetailClient({
         </button>
       )}
 
-      {/* Edit (draft/rejected only) */}
-      {["draft", "rejected"].includes(status) && (
-        <a
-          href={`/dashboard/builder/agents/${agentId}/edit`}
-          className="text-xs border border-border text-dim hover:text-text-main px-4 py-2 rounded-lg transition-colors"
-        >
-          Edit
-        </a>
+      {/* Edit button */}
+      {canEdit && (
+        <div className="relative group">
+          <a
+            href={`/dashboard/builder/agents/${agentId}/edit`}
+            className="text-xs border border-border text-dim hover:text-text-main px-4 py-2 rounded-lg transition-colors inline-block"
+          >
+            {status === "live" ? "✏ Edit Agent" : "Edit"}
+          </a>
+          {/* Tooltip for live agents */}
+          {status === "live" && (
+            <div
+              className="absolute bottom-full left-0 mb-2 w-56 text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10"
+              style={{ background: "#0C1520", border: "1px solid #1C2D40" }}
+            >
+              <div className="font-bold text-white mb-1">Editing a live agent</div>
+              <p className="text-dim leading-relaxed">
+                Name, tagline, description, price &amp; tools update immediately.
+                Changing the <span className="text-primary">system prompt</span> will pause the listing and send it back for review.
+              </p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Delete */}
-      {status !== "live" && (
+      {status !== "review" && (
         <>
           {confirmDelete ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-dim">Confirm?</span>
+              <span className="text-xs text-dim">
+                {status === "live" ? "Delist & delete?" : "Confirm?"}
+              </span>
               <button
                 onClick={handleDelete}
                 disabled={loading}
-                className="text-xs text-red border border-red/30 px-3 py-2 rounded-lg hover:bg-red/10 transition-colors disabled:opacity-50"
+                className="text-xs border px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+                style={{ borderColor: "rgba(231,76,60,0.4)", color: "#E74C3C" }}
               >
-                Delete
+                {status === "live" ? "Delist" : "Delete"}
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
@@ -93,7 +106,7 @@ export default function AgentDetailClient({
               onClick={() => setConfirmDelete(true)}
               className="text-xs text-dim hover:text-red transition-colors px-2 py-2"
             >
-              Delete
+              {status === "live" ? "Delist" : "Delete"}
             </button>
           )}
         </>

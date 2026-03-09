@@ -22,17 +22,23 @@ export default async function MarketplacePage() {
       trialDays: true,
       createdAt: true,
       reviews: { select: { rating: true } },
+      subscriptions: {
+        where: { status: { in: ["active", "trialing"] } },
+        select: { id: true },
+      },
+      featured: true,
     },
     orderBy: { createdAt: "desc" },
   });
 
-  const agentsWithRating = agents.map(({ reviews, ...rest }) => ({
+  const agentsWithRating = agents.map(({ reviews, subscriptions, ...rest }) => ({
     ...rest,
     avgRating:
       reviews.length > 0
         ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
         : null,
     reviewCount: reviews.length,
+    subCount: subscriptions.length,
   }));
 
   const totalAgents = agentsWithRating.length;

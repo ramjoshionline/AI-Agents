@@ -43,6 +43,8 @@ model Agent {
   trialDays    Int            @default(0)
   // "draft" | "review" | "live" | "rejected"
   status       String         @default("draft")
+  // admin can pin to Featured section
+  featured     Boolean        @default(false)
   // optional rejection/review notes from admin
   reviewNote   String?
 

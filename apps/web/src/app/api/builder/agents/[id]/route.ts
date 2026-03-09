@@ -42,10 +42,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Agent not found." }, { status: 404 });
   }
 
-  // Can only edit drafts or rejected agents
-  if (!["draft", "rejected"].includes(agent.status)) {
+  // Cannot edit while under review
+  if (agent.status === "review") {
     return NextResponse.json(
-      { error: "Only draft or rejected agents can be edited." },
+      { error: "Agent is under review and cannot be edited." },
       { status: 400 }
     );
   }
@@ -64,6 +64,13 @@ export async function PATCH(
       trialDays,
     } = body;
 
+    // For live agents: changing systemPrompt triggers re-review.
+    const isLive = agent.status === "live";
+    const systemPromptChanged =
+      isLive &&
+      typeof systemPrompt === "string" &&
+      systemPrompt.trim() !== agent.systemPrompt;
+
     const updated = await prisma.agent.update({
       where: { id: params.id },
       data: {
@@ -78,10 +85,12 @@ export async function PATCH(
           priceMonthly: Math.round(priceMonthly * 100),
         }),
         ...(trialDays !== undefined && { trialDays }),
+        // Changing system prompt on a live agent sends it back to review
+        ...(systemPromptChanged && { status: "review", reviewNote: null }),
       },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ ...updated, _reReview: systemPromptChanged });
   } catch {
     return NextResponse.json(
       { error: "Failed to update agent." },
@@ -105,11 +114,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Agent not found." }, { status: 404 });
   }
 
+  // Live agents are delisted (→ draft) rather than hard-deleted
+  // so subscriber records and reviews are preserved
   if (agent.status === "live") {
-    return NextResponse.json(
-      { error: "Cannot delete a live agent. Archive it instead." },
-      { status: 400 }
-    );
+    const updated = await prisma.agent.update({
+      where: { id: params.id },
+      data: { status: "draft", featured: false },
+    });
+    return NextResponse.json({ delisted: true, id: updated.id });
   }
 
   await prisma.agent.delete({ where: { id: params.id } });
