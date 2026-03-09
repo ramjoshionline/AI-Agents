@@ -138,23 +138,63 @@ async function main() {
     },
   });
 
+  // Create or find an admin account
+  const adminPassword = await bcrypt.hash("Admin1234!", 10);
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@agentmarket.dev" },
+    update: {},
+    create: {
+      email: "admin@agentmarket.dev",
+      password: adminPassword,
+      name: "Platform Admin",
+      role: "admin",
+    },
+  });
+  console.log(`   Admin:   ${admin.email} (password: Admin1234!)`);
+
   console.log(`   Builder: ${builder.email} (id: ${builder.id})`);
 
   // Only seed if no live agents exist yet
   const existingLive = await prisma.agent.count({ where: { status: "live" } });
   if (existingLive > 0) {
-    console.log(`   ↩  ${existingLive} live agents already exist — skipping.`);
-    return;
+    console.log(`   ↩  ${existingLive} live agents already exist — skipping agent seed.`);
+  } else {
+    for (const data of DEMO_AGENTS) {
+      const agent = await prisma.agent.create({
+        data: { ...data, builderId: builder.id },
+      });
+      console.log(`   ✓  ${agent.name}`);
+    }
+    console.log(`✅  Seeded ${DEMO_AGENTS.length} demo agents.`);
   }
 
-  for (const data of DEMO_AGENTS) {
-    const agent = await prisma.agent.create({
-      data: { ...data, builderId: builder.id },
+  // Seed a demo agent in "review" status so admin queue is non-empty
+  const existingReview = await prisma.agent.count({ where: { status: "review" } });
+  if (existingReview === 0) {
+    await prisma.agent.create({
+      data: {
+        name: "Gym Sales & Booking Bot",
+        tagline: "Converts gym leads into trial bookings and memberships — around the clock.",
+        description: "Handles fitness lead qualification, class bookings, and follow-ups.",
+        vertical: "Fitness & Wellness",
+        systemPrompt: `You are a friendly and professional sales and booking assistant for a fitness studio. Your goals are:
+1. Greet visitors warmly and find out what they're looking for (weight loss, strength, classes, etc.)
+2. Match their goals to the right membership tier or class package
+3. Book a free trial session via Calendly
+4. Answer common questions about pricing, schedules, and facilities
+5. Follow up on no-shows with an SMS reminder
+
+Always be encouraging, never pushy. If someone is unsure, offer the free trial as a low-commitment first step.`,
+        tools: JSON.stringify(["calendly", "twilio_sms"]),
+        pricingModel: "flat",
+        priceMonthly: 14900,
+        trialDays: 14,
+        status: "review",
+        builderId: builder.id,
+      },
     });
-    console.log(`   ✓  ${agent.name}`);
+    console.log("   ✓  Demo review agent: Gym Sales & Booking Bot");
   }
-
-  console.log(`✅  Seeded ${DEMO_AGENTS.length} demo agents.`);
 }
 
 main()
