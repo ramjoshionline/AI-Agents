@@ -18,6 +18,8 @@ model User {
   // "buyer" | "builder" | "admin"
   role             String         @default("buyer")
   stripeCustomerId String?
+  // JSON string: { emailNewSub?: bool, emailCancellation?: bool, emailPayment?: bool }
+  notifPrefs       String         @default("{}")
   agents           Agent[]
   subscriptions    Subscription[]
   createdAt        DateTime       @default(now())

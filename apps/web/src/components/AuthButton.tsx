@@ -37,6 +37,13 @@ export default function AuthButton() {
       >
         {session.user.name || session.user.email?.split("@")[0]}
       </Link>
+      <Link
+        href="/account/settings"
+        className="text-xs text-dim hover:text-text-main transition-colors px-1"
+        title="Account Settings"
+      >
+        ⚙
+      </Link>
       <button
         onClick={() => signOut({ callbackUrl: "/" })}
         className="text-xs border border-border text-dim hover:text-text-main hover:border-border/80 transition-colors px-3 py-1.5 rounded-md"

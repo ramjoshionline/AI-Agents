@@ -16,13 +16,13 @@ export default function DashboardNav() {
           { label: "Overview", href: "/dashboard/builder" },
           { label: "My Agents", href: "/dashboard/builder/agents" },
           { label: "Earnings", href: "/dashboard/builder/earnings" },
-          { label: "Settings", href: "/dashboard/builder/settings" },
+          { label: "Settings", href: "/account/settings" },
         ]
       : [
           { label: "Overview", href: "/dashboard/buyer" },
           { label: "My Agents", href: "/dashboard/buyer/agents" },
           { label: "Activity", href: "/dashboard/buyer/activity" },
-          { label: "Settings", href: "/dashboard/buyer/settings" },
+          { label: "Settings", href: "/account/settings" },
         ];
 
   return (
