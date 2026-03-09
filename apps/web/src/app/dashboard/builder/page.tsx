@@ -191,27 +191,61 @@ export default async function BuilderDashboardPage() {
             )}
           </div>
 
-          {/* Earnings Overview (placeholder) */}
+          {/* Earnings Overview */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-white">Earnings Overview</h2>
-              <span
-                className="text-xs px-2 py-0.5 rounded font-bold"
-                style={{ background: "rgba(255,149,0,0.1)", color: "#FF9500" }}
+              <Link
+                href="/dashboard/builder/analytics"
+                className="text-xs text-primary hover:text-primary/80 transition-colors"
               >
-                Charts in M8
-              </span>
+                Full analytics →
+              </Link>
             </div>
-            <div className="bg-card border border-border rounded-xl p-6 text-center">
-              <div
-                className="h-28 rounded-lg flex items-center justify-center"
-                style={{ background: "#111A28" }}
-              >
-                <p className="text-xs text-dim">
-                  Earnings chart will appear here once you have active
-                  subscribers.
-                </p>
-              </div>
+            <div className="bg-card border border-border rounded-xl p-5">
+              {grossMrr > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <div className="text-xs text-dim">Gross MRR</div>
+                      <div className="text-2xl font-extrabold" style={{ color: "#FF9500" }}>
+                        ${(grossMrr / 100).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-dim">Your cut</div>
+                      <div className="text-lg font-bold" style={{ color: "#9B59B6" }}>
+                        ${(netMrr / 100).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="w-full h-1.5 rounded-full overflow-hidden"
+                    style={{ background: "rgba(74,101,128,0.2)" }}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: "72.5%", background: "linear-gradient(90deg, #FF9500, #9B59B6)" }}
+                    />
+                  </div>
+                  <div className="text-xs text-dim">
+                    {totalSubscribers} active subscriber{totalSubscribers !== 1 ? "s" : ""} across {liveAgents} live agent{liveAgents !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="text-3xl mb-2">📊</div>
+                  <p className="text-xs text-dim leading-relaxed">
+                    Earnings will appear once you have active subscribers.
+                  </p>
+                  <Link
+                    href="/dashboard/builder/analytics"
+                    className="inline-block mt-3 text-xs text-primary hover:text-primary/80 transition-colors"
+                  >
+                    View analytics →
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -238,11 +272,11 @@ export default async function BuilderDashboardPage() {
                   badge: null,
                 },
                 {
-                  icon: "💸",
-                  label: "Payout Settings",
-                  href: "#",
+                  icon: "📊",
+                  label: "Analytics",
+                  href: "/dashboard/builder/analytics",
                   color: "#FF9500",
-                  badge: "Soon",
+                  badge: null,
                 },
                 {
                   icon: "📖",
