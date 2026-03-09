@@ -67,6 +67,23 @@ model Subscription {
   trialEndsAt      DateTime?
   currentPeriodEnd DateTime?
 
+  integration Integration?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Integration {
+  id             String       @id @default(cuid())
+  subscriptionId String       @unique
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // JSON blob: { slack?: { webhookUrl }, calendly?: { schedulingUrl },
+  //   twilio?: { phoneNumber, accountSid, authToken },
+  //   webhook?: { url, secret }, hubspot?: { apiKey },
+  //   gmail?: { notificationEmail } }
+  config    String   @default("{}")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

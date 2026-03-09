@@ -195,6 +195,16 @@ export default async function BuyerDashboardPage({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
+                        {/* Integrations */}
+                        {["active", "trialing"].includes(sub.status) && (
+                          <Link
+                            href={`/dashboard/buyer/integrations/${sub.id}`}
+                            className="text-xs border border-border text-dim px-3 py-1.5 rounded-lg hover:border-primary/30 hover:text-primary transition-colors"
+                          >
+                            🔌 Connect
+                          </Link>
+                        )}
+
                         {/* Chat */}
                         {["active", "trialing"].includes(sub.status) ? (
                           <Link
@@ -229,7 +239,7 @@ export default async function BuyerDashboardPage({
             <div className="space-y-2">
               {[
                 { icon: "🛒", label: "Browse Marketplace", href: "/marketplace", color: "#FF9500", badge: null },
-                { icon: "🔌", label: "Connect Integrations", href: "#", color: "#3B9EFF", badge: "M9" },
+                { icon: "🔌", label: "Connect Integrations", href: subscriptions[0] ? `/dashboard/buyer/integrations/${subscriptions[0].id}` : "#", color: "#3B9EFF", badge: null },
                 { icon: "💬", label: "Chat with Agent", href: "#chat", color: "#2ECC71", badge: null },
                 { icon: "⚙️", label: "Account Settings", href: "#", color: "#9B59B6", badge: "Soon" },
               ].map(({ icon, label, href, color, badge }) => (
