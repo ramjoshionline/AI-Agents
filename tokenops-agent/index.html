@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TokenOps Agent — AI Cost Intelligence</title>
+  <style>
+    /* =====================================================================
+       CSS CUSTOM PROPERTIES — THEMING
+       ===================================================================== */
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --surface3: #30363d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #7d8590;
+      --text-dim: #484f58;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --teal: #2ea043;
+      --orange: #f0883e;
+      --green-bg: rgba(63, 185, 80, 0.1);
+      --yellow-bg: rgba(210, 153, 34, 0.1);
+      --red-bg: rgba(248, 81, 73, 0.1);
+      --blue-bg: rgba(88, 166, 255, 0.1);
+    }
+
+    [data-theme="light"] {
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface2: #f0f2f5;
+      --surface3: #e2e5e9;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text-muted: #656d76;
+      --text-dim: #9198a1;
+    }
+
+    /* =====================================================================
+       RESET & BASE
+       ===================================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 12px;
+      border-radius: 6px;
+      padding: 5px 12px;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    a { color: var(--accent); text-decoration: none; }
+
+    /* =====================================================================
+       ALERT BANNER
+       ===================================================================== */
+    #alert-banner {
+      display: none;
+      background: var(--red-bg);
+      border-bottom: 1px solid var(--red);
+      color: var(--red);
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    #alert-banner.visible { display: flex; align-items: center; gap: 8px; }
+    #alert-banner .alert-icon { font-size: 14px; }
+
+    /* =====================================================================
+       HEADER
+       ===================================================================== */
+    header {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      margin-right: 8px;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.3px;
+    }
+    .brand-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      transition: color 0.15s, background 0.15s;
+      border: 1px solid transparent;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active {
+      color: var(--accent);
+      background: var(--blue-bg);
+      border-color: var(--accent);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      background: var(--surface2);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse-green 2s infinite;
+    }
+    .status-dot.paused { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: none; }
+
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes pulse-yellow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .btn-icon {
+      background: var(--surface2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    .btn-icon:hover { color: var(--text); background: var(--surface3); }
+
+    .btn-reset {
+      background: var(--surface2);
+      color: var(--yellow);
+      border: 1px solid var(--yellow);
+      padding: 5px 12px;
+      font-size: 12px;
+    }
+    .btn-reset:hover { background: var(--yellow-bg); }
+
+    /* =====================================================================
+       MAIN + PANELS
+       ===================================================================== */
+    main {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .panel {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 16px;
+      display: none;
+    }
+    .panel.active { display: block; }
+
+    /* =====================================================================
+       METRIC CARDS
+       ===================================================================== */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .metric-value.green { color: var(--green); }
+    .metric-value.yellow { color: var(--yellow); }
+    .metric-value.red { color: var(--red); }
+    .metric-value.accent { color: var(--accent); }
+    .metric-sublabel {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* =====================================================================
+       CHARTS
+       ===================================================================== */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .chart-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .bar-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      width: 110px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bar-track {
+      flex: 1;
+      height: 14px;
+      background: var(--surface2);
+      border-radius: 7px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 7px;
+      transition: width 0.4s ease;
+      min-width: 2px;
+    }
+    .bar-tag {
+      font-size: 10px;
+      color: var(--text-muted);
+      width: 60px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    /* =====================================================================
+       POLICY ALERTS
+       ===================================================================== */
+    .policy-alerts {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .policy-alerts-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .alert-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .alert-row.warning { background: var(--yellow-bg); border: 1px solid rgba(210,153,34,0.3); }
+    .alert-row.critical { background: var(--red-bg); border: 1px solid rgba(248,81,73,0.3); }
+    .alert-row.info { background: var(--blue-bg); border: 1px solid rgba(88,166,255,0.3); }
+    .alert-severity {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .alert-row.warning .alert-severity { background: var(--yellow-bg); color: var(--yellow); }
+    .alert-row.critical .alert-severity { background: var(--red-bg); color: var(--red); }
+    .alert-row.info .alert-severity { background: var(--blue-bg); color: var(--accent); }
+    .alert-text { flex: 1; color: var(--text); }
+
+    /* =====================================================================
+       LIVE STREAM TABLE
+       ===================================================================== */
+    .stream-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .stream-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--green);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-green 1.5s infinite;
+    }
+    .req-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .stream-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead tr {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+    }
+    td {
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+
+    .use-case-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .badge-purple { background: rgba(188,140,255,0.15); color: var(--purple); }
+    .badge-orange { background: rgba(240,136,62,0.15); color: var(--orange); }
+    .badge-red { background: var(--red-bg); color: var(--red); }
+    .badge-teal { background: rgba(46,160,67,0.15); color: var(--teal); }
+    .badge-green { background: var(--green-bg); color: var(--green); }
+    .badge-blue { background: var(--blue-bg); color: var(--accent); }
+    .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+
+    /* =====================================================================
+       AGENT CONSOLE
+       ===================================================================== */
+    .agent-cols {
+      display: grid;
+      grid-template-columns: 55fr 45fr;
+      gap: 12px;
+      min-height: 400px;
+      margin-bottom: 12px;
+    }
+
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .agent-card-header {
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .agent-card-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .diagnosis-item {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border-left: 3px solid transparent;
+    }
+    .diagnosis-item.warning { background: var(--yellow-bg); border-left-color: var(--yellow); }
+    .diagnosis-item.critical { background: var(--red-bg); border-left-color: var(--red); }
+    .diagnosis-item.info { background: var(--blue-bg); border-left-color: var(--accent); }
+
+    .diagnosis-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .diagnosis-rule {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .diagnosis-time {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-left: auto;
+    }
+    .diagnosis-msg {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .diagnosis-policy {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    .audit-entry {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 11px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      line-height: 1.6;
+    }
+    .audit-line1 { color: var(--accent); }
+    .audit-line2 { color: var(--text-muted); }
+
+    .interventions-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .interventions-header {
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .intervention-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      border-left: 3px solid transparent;
+    }
+    .intervention-row:last-child { border-bottom: none; }
+    .intervention-row.warning { border-left-color: var(--yellow); }
+    .intervention-row.critical { border-left-color: var(--red); }
+    .intervention-row.info { border-left-color: var(--accent); }
+
+    .intervention-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      width: 28px;
+      text-align: center;
+      margin-top: 1px;
+    }
+    .intervention-details { flex: 1; min-width: 0; }
+    .intervention-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .intervention-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .intervention-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .btn-apply {
+      background: var(--blue-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      font-size: 11px;
+      padding: 3px 10px;
+    }
+    .btn-apply:hover { background: rgba(88,166,255,0.2); }
+
+    /* =====================================================================
+       SCENARIOS PANEL
+       ===================================================================== */
+    .scenarios-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .scenario-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .scenario-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .scenario-card.complete { border-color: var(--green); }
+
+    .scenario-icon { font-size: 24px; }
+    .scenario-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .scenario-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .scenario-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .scenario-meta span {
+      display: inline-block;
+      margin-right: 12px;
+    }
+
+    .progress-stages {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .stage-dot {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--surface3);
+      transition: background 0.3s;
+    }
+    .stage-dot.active { background: var(--orange); }
+    .stage-dot.detecting { background: var(--yellow); animation: pulse-yellow 1s infinite; }
+    .stage-dot.done { background: var(--green); }
+
+    .scenario-status {
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .scenario-status.building { color: var(--orange); }
+    .scenario-status.detecting { color: var(--yellow); }
+    .scenario-status.applied { color: var(--green); }
+    .scenario-status.normalized { color: var(--green); }
+    .scenario-status.complete { color: var(--text-muted); }
+    .scenario-status.idle { color: var(--text-dim); }
+
+    .btn-scenario {
+      background: var(--blue-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      font-size: 12px;
+      padding: 7px 14px;
+      width: 100%;
+      text-align: center;
+    }
+    .btn-scenario:hover:not(:disabled) { background: rgba(88,166,255,0.2); }
+    .btn-scenario.running {
+      background: var(--surface2);
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border: 2px solid var(--text-dim);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .scenario-events {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .scenario-events-header {
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .scenario-events-body {
+      padding: 12px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .event-item:last-child { border-bottom: none; }
+    .event-time {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      width: 65px;
+    }
+    .event-msg { color: var(--text-muted); flex: 1; }
+    .event-type {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .event-type.anomaly { background: var(--red-bg); color: var(--red); }
+    .event-type.detect { background: var(--yellow-bg); color: var(--yellow); }
+    .event-type.action { background: var(--green-bg); color: var(--green); }
+    .event-type.info { background: var(--blue-bg); color: var(--accent); }
+
+    /* =====================================================================
+       EXECUTIVE SUMMARY PANEL
+       ===================================================================== */
+    .exec-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .exec-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .exec-time {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .kpi-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .exec-narrative {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    .exec-narrative strong { color: var(--text); }
+
+    .impact-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .impact-table-header {
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* =====================================================================
+       EMPTY STATES
+       ===================================================================== */
+    .empty-state {
+      padding: 32px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+    .empty-state .empty-icon { font-size: 28px; margin-bottom: 8px; }
+    .empty-state p { margin-top: 4px; }
+
+    /* =====================================================================
+       SCROLLBAR STYLING
+       ===================================================================== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+    /* =====================================================================
+       UTILITY CLASSES
+       ===================================================================== */
+    .text-green { color: var(--green); }
+    .text-red { color: var(--red); }
+    .text-yellow { color: var(--yellow); }
+    .text-accent { color: var(--accent); }
+    .text-muted { color: var(--text-muted); }
+    .text-dim { color: var(--text-dim); }
+    .font-mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+    .fw-bold { font-weight: 700; }
+    .section-spacer { height: 16px; }
+  </style>
+</head>
+<body>
+
+  <!-- =====================================================================
+       ALERT BANNER
+       ===================================================================== -->
+  <div id="alert-banner" role="alert">
+    <span class="alert-icon">&#9888;</span>
+    <span id="alert-banner-text">Circuit breaker activated — proposal-assistant workflow suspended.</span>
+  </div>
+
+  <!-- =====================================================================
+       HEADER
+       ===================================================================== -->
+  <header>
+    <div class="brand">
+      <span class="brand-title">TokenOps Agent</span>
+      <span class="brand-sub">AI Cost Intelligence</span>
+    </div>
+
+    <nav role="navigation" aria-label="Main navigation">
+      <button class="tab-btn active" tabindex="0" onclick="switchTab('overview')" id="tab-overview">Overview</button>
+      <button class="tab-btn" tabindex="0" onclick="switchTab('stream')" id="tab-stream">Live Stream</button>
+      <button class="tab-btn" tabindex="0" onclick="switchTab('agent')" id="tab-agent">Agent Console</button>
+      <button class="tab-btn" tabindex="0" onclick="switchTab('scenarios')" id="tab-scenarios">Scenarios</button>
+      <button class="tab-btn" tabindex="0" onclick="switchTab('executive')" id="tab-executive">Executive Summary</button>
+    </nav>
+
+    <div class="header-controls">
+      <div class="status-indicator">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Running</span>
+      </div>
+      <button class="btn-icon" id="theme-btn" tabindex="0" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle dark/light theme">&#9680; Light</button>
+      <button class="btn-reset" tabindex="0" onclick="resetAll()" aria-label="Reset simulation">&#8635; Reset</button>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       MAIN CONTENT
+       ===================================================================== -->
+  <main>
+
+    <!-- ===== OVERVIEW PANEL ===== -->
+    <div class="panel active" id="panel-overview">
+      <div class="metrics-grid">
+        <div class="metric-card" id="mc-total-spend">
+          <div class="metric-label">Total Spend</div>
+          <div class="metric-value" id="mv-total-spend">$0.00</div>
+          <div class="metric-sublabel" id="ms-total-spend">across all use cases</div>
+        </div>
+        <div class="metric-card" id="mc-saved">
+          <div class="metric-label">Saved by Agent</div>
+          <div class="metric-value green" id="mv-saved">$0.00</div>
+          <div class="metric-sublabel" id="ms-saved">0% efficiency gain</div>
+        </div>
+        <div class="metric-card" id="mc-requests">
+          <div class="metric-label">Total Requests</div>
+          <div class="metric-value accent" id="mv-requests">0</div>
+          <div class="metric-sublabel" id="ms-requests">0 cache hits</div>
+        </div>
+        <div class="metric-card" id="mc-alerts">
+          <div class="metric-label">Active Alerts</div>
+          <div class="metric-value" id="mv-alerts">0</div>
+          <div class="metric-sublabel" id="ms-alerts">0 interventions applied</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Spend by Use Case</div>
+          <div id="chart-spend-usecase"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Model Distribution</div>
+          <div id="chart-model-dist"></div>
+        </div>
+      </div>
+
+      <div class="policy-alerts" id="policy-alerts-section" style="display:none">
+        <div class="policy-alerts-title">Policy Alerts</div>
+        <div id="policy-alerts-list"></div>
+      </div>
+    </div>
+
+    <!-- ===== LIVE STREAM PANEL ===== -->
+    <div class="panel" id="panel-stream">
+      <div class="stream-header">
+        <span class="stream-title">Request Stream</span>
+        <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+        <span class="req-count" id="stream-req-count">0 requests</span>
+      </div>
+      <div class="stream-table-wrap">
+        <table aria-label="Live request stream">
+          <thead>
+            <tr>
+              <th>#ID</th>
+              <th>Use Case</th>
+              <th>Model</th>
+              <th>Input</th>
+              <th>Output</th>
+              <th>Cost</th>
+              <th>Retries</th>
+              <th>Status</th>
+              <th>Anomaly</th>
+            </tr>
+          </thead>
+          <tbody id="stream-tbody"></tbody>
+        </table>
+        <div id="stream-empty" class="empty-state">
+          <div class="empty-icon">&#128246;</div>
+          <p>Waiting for requests...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AGENT CONSOLE PANEL ===== -->
+    <div class="panel" id="panel-agent">
+      <div class="agent-cols">
+        <div class="agent-card">
+          <div class="agent-card-header">Diagnoses &amp; Detections</div>
+          <div class="agent-card-body" id="diagnoses-list">
+            <div class="empty-state">
+              <div class="empty-icon">&#128269;</div>
+              <p>No anomalies detected yet.</p>
+              <p>Run a scenario to trigger agent analysis.</p>
+            </div>
+          </div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-card-header">Audit Trail</div>
+          <div class="agent-card-body" id="audit-trail">
+            <div class="empty-state">
+              <div class="empty-icon">&#128196;</div>
+              <p>No interventions logged.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="interventions-section">
+        <div class="interventions-header">Applied Interventions</div>
+        <div id="interventions-list">
+          <div class="empty-state">
+            <div class="empty-icon">&#9881;</div>
+            <p>No interventions applied yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCENARIOS PANEL ===== -->
+    <div class="panel" id="panel-scenarios">
+      <div class="scenarios-grid">
+
+        <!-- Prompt Bloat -->
+        <div class="scenario-card" id="sc-card-prompt-bloat">
+          <div class="scenario-icon">&#128161;</div>
+          <div class="scenario-name">Prompt Bloat</div>
+          <div class="scenario-desc">
+            Document Summarizer begins sending 6–12k token prompts instead of the normal 800–2k.
+            Agent detects the policy violation and activates context trimming + cache reuse.
+          </div>
+          <div class="scenario-meta">
+            <span>&#127979; doc-summarizer</span>
+            <span>&#128176; ~$3–8/hr excess</span>
+          </div>
+          <div class="progress-stages" id="prog-prompt-bloat">
+            <div class="stage-dot" id="prog-prompt-bloat-0"></div>
+            <div class="stage-dot" id="prog-prompt-bloat-1"></div>
+            <div class="stage-dot" id="prog-prompt-bloat-2"></div>
+            <div class="stage-dot" id="prog-prompt-bloat-3"></div>
+            <div class="stage-dot" id="prog-prompt-bloat-4"></div>
+          </div>
+          <div class="scenario-status idle" id="sc-status-prompt-bloat">Ready to simulate</div>
+          <button class="btn-scenario" id="btn-prompt-bloat" tabindex="0" onclick="triggerScenario('prompt-bloat')">
+            Trigger Scenario
+          </button>
+        </div>
+
+        <!-- Premium Over-Routing -->
+        <div class="scenario-card" id="sc-card-premium-routing">
+          <div class="scenario-icon">&#128184;</div>
+          <div class="scenario-name">Premium Over-Routing</div>
+          <div class="scenario-desc">
+            Support Copilot starts routing all requests to GPT-4 Turbo (premium tier) instead of
+            GPT-3.5 Turbo. Agent detects and autonomously re-routes to the correct model tier.
+          </div>
+          <div class="scenario-meta">
+            <span>&#127381; support-copilot</span>
+            <span>&#128176; ~$20x cost increase</span>
+          </div>
+          <div class="progress-stages" id="prog-premium-routing">
+            <div class="stage-dot" id="prog-premium-routing-0"></div>
+            <div class="stage-dot" id="prog-premium-routing-1"></div>
+            <div class="stage-dot" id="prog-premium-routing-2"></div>
+            <div class="stage-dot" id="prog-premium-routing-3"></div>
+            <div class="stage-dot" id="prog-premium-routing-4"></div>
+          </div>
+          <div class="scenario-status idle" id="sc-status-premium-routing">Ready to simulate</div>
+          <button class="btn-scenario" id="btn-premium-routing" tabindex="0" onclick="triggerScenario('premium-routing')">
+            Trigger Scenario
+          </button>
+        </div>
+
+        <!-- Retry Storm -->
+        <div class="scenario-card" id="sc-card-retry-storm">
+          <div class="scenario-icon">&#9889;</div>
+          <div class="scenario-name">Retry Storm</div>
+          <div class="scenario-desc">
+            Proposal Assistant enters a retry loop (4–8 retries per request) due to upstream tool
+            failures. Agent detects the cascade, activates circuit breaker, and suspends the workflow.
+          </div>
+          <div class="scenario-meta">
+            <span>&#128084; proposal-assistant</span>
+            <span>&#128176; ~$5–15x cost multiplier</span>
+          </div>
+          <div class="progress-stages" id="prog-retry-storm">
+            <div class="stage-dot" id="prog-retry-storm-0"></div>
+            <div class="stage-dot" id="prog-retry-storm-1"></div>
+            <div class="stage-dot" id="prog-retry-storm-2"></div>
+            <div class="stage-dot" id="prog-retry-storm-3"></div>
+            <div class="stage-dot" id="prog-retry-storm-4"></div>
+          </div>
+          <div class="scenario-status idle" id="sc-status-retry-storm">Ready to simulate</div>
+          <button class="btn-scenario" id="btn-retry-storm" tabindex="0" onclick="triggerScenario('retry-storm')">
+            Trigger Scenario
+          </button>
+        </div>
+
+      </div>
+
+      <div class="scenario-events">
+        <div class="scenario-events-header">Scenario Event Log</div>
+        <div class="scenario-events-body" id="scenario-events-body">
+          <div class="empty-state" style="padding:20px">
+            <p>Trigger a scenario to see real-time event log.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EXECUTIVE SUMMARY PANEL ===== -->
+    <div class="panel" id="panel-executive">
+      <div class="exec-header">
+        <div class="exec-title">Executive Summary</div>
+        <div class="exec-time" id="exec-time"></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-box">
+          <div class="kpi-value text-green" id="kpi-saved">$0.00</div>
+          <div class="kpi-label">Total Saved</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-value text-yellow" id="kpi-incidents">0</div>
+          <div class="kpi-label">Incidents Detected</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-value text-accent" id="kpi-interventions">0</div>
+          <div class="kpi-label">Interventions Applied</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-value text-green" id="kpi-efficiency">0%</div>
+          <div class="kpi-label">Cost Efficiency %</div>
+        </div>
+      </div>
+
+      <div class="exec-narrative" id="exec-narrative">
+        <strong>TokenOps Agent</strong> is monitoring AI request traffic. Trigger a scenario to see the agent in action.
+      </div>
+
+      <div class="impact-table-wrap">
+        <div class="impact-table-header">Intervention Impact Table</div>
+        <table aria-label="Intervention impact">
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Use Case</th>
+              <th>Anomaly</th>
+              <th>Action Taken</th>
+              <th>Cost Before</th>
+              <th>Cost After</th>
+              <th>Savings</th>
+            </tr>
+          </thead>
+          <tbody id="impact-tbody"></tbody>
+        </table>
+        <div id="impact-empty" class="empty-state">
+          <p>No interventions applied yet. Run a scenario to populate this table.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =====================================================================
+       JAVASCRIPT
+       ===================================================================== -->
+  <script>
+    'use strict';
+
+    /* ==================================================================
+       CONSTANTS — MODELS, USE CASES, POLICY
+       ================================================================== */
+    const MODELS = {
+      'claude-3-opus':   { name: 'Claude 3 Opus',   inputPer1k: 0.015,   outputPer1k: 0.075,  tier: 'premium' },
+      'gpt-4-turbo':     { name: 'GPT-4 Turbo',     inputPer1k: 0.010,   outputPer1k: 0.030,  tier: 'premium' },
+      'claude-3-sonnet': { name: 'Claude 3 Sonnet', inputPer1k: 0.003,   outputPer1k: 0.015,  tier: 'standard' },
+      'gpt-3.5-turbo':   { name: 'GPT-3.5 Turbo',  inputPer1k: 0.0005,  outputPer1k: 0.0015, tier: 'standard' },
+      'claude-3-haiku':  { name: 'Claude 3 Haiku',  inputPer1k: 0.00025, outputPer1k: 0.00125,tier: 'economy' }
+    };
+
+    const USE_CASES = {
+      'doc-summarizer':     { name: 'Document Summarizer', owner: 'Content Team', color: '#a855f7' },
+      'support-copilot':    { name: 'Support Copilot',     owner: 'CX Team',      color: '#3b82f6' },
+      'proposal-assistant': { name: 'Proposal Assistant',  owner: 'Sales Team',   color: '#f59e0b' }
+    };
+
+    const POLICY = {
+      MAX_DOC_SUMMARIZER_INPUT: 2000,
+      SUPPORT_COPILOT_MAX_MODEL_TIER: 'gpt-3.5-turbo',
+      MAX_RETRIES_PER_REQUEST: 3,
+      CIRCUIT_BREAKER_THRESHOLD: 3
+    };
+
+    /* ==================================================================
+       SEEDED RNG — MULBERRY32
+       ================================================================== */
+    function makeMulberry32(seed) {
+      return function() {
+        seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+        let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    let baselineRng = makeMulberry32(100);
+    let scenarioRng = makeMulberry32(42);
+
+    function rngRange(rng, min, max) {
+      return Math.floor(rng() * (max - min + 1)) + min;
+    }
+
+    /* ==================================================================
+       COST ARITHMETIC — MICROCENTS
+       ================================================================== */
+    function calcCostMicrocents(modelKey, inputTokens, outputTokens) {
+      const m = MODELS[modelKey];
+      const cost = (inputTokens / 1000 * m.inputPer1k) + (outputTokens / 1000 * m.outputPer1k);
+      return Math.round(cost * 1_000_000);
+    }
+
+    function displayCost(microcents) {
+      const dollars = microcents / 1_000_000;
+      if (dollars >= 1)    return '$' + dollars.toFixed(2);
+      if (dollars >= 0.01) return '$' + dollars.toFixed(4);
+      return '$' + dollars.toFixed(6);
+    }
+
+    /* ==================================================================
+       STATE
+       ================================================================== */
+    let state = buildInitialState();
+
+    function buildInitialState() {
+      return {
+        tick: 0,
+        running: true,
+        activeScenario: null,
+        scenarioTick: 0,
+
+        requests: [],
+        requestIdCounter: 0,
+
+        spend: {
+          totalMicrocents: 0,
+          savedMicrocents: 0,
+          byUseCase: {
+            'doc-summarizer': 0,
+            'support-copilot': 0,
+            'proposal-assistant': 0
+          }
+        },
+
+        ucState: {
+          'doc-summarizer':     { trimActive: false, modelOverride: null, circuitOpen: false },
+          'support-copilot':    { trimActive: false, modelOverride: null, circuitOpen: false },
+          'proposal-assistant': { trimActive: false, modelOverride: null, circuitOpen: false }
+        },
+
+        cacheActive: false,
+
+        agent: {
+          diagnoses: [],
+          interventions: [],
+          auditLog: []
+        },
+
+        ruleCooldowns: {},
+
+        alerts: [],
+
+        scenarioEvents: [],
+        impactRows: []
+      };
+    }
+
+    /* ==================================================================
+       TAB MANAGEMENT
+       ================================================================== */
+    let activeTab = 'overview';
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+      document.getElementById('tab-' + name).classList.add('active');
+      document.getElementById('panel-' + name).classList.add('active');
+      activeTab = name;
+
+      renderActivePanel();
+    }
+
+    /* ==================================================================
+       THEME TOGGLE
+       ================================================================== */
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+      const themeBtnEl = document.getElementById('theme-btn');
+      if (themeBtnEl) {
+        themeBtnEl.textContent = html.dataset.theme === 'light' ? '◑ Dark' : '◐ Light';
+      }
+    }
+
+    /* ==================================================================
+       UTILITY HELPERS
+       ================================================================== */
+    function tsNow() {
+      return new Date().toLocaleTimeString('en-US', { hour12: false });
+    }
+
+    function checkLastN(useCase, n, pred) {
+      return state.requests
+        .filter(r => r.useCase === useCase)
+        .slice(-n)
+        .filter(pred);
+    }
+
+    function addScenarioEvent(type, msg) {
+      state.scenarioEvents.unshift({ time: tsNow(), type, msg });
+      if (state.scenarioEvents.length > 50) state.scenarioEvents.length = 50;
+    }
+
+    /* ==================================================================
+       INTERVENTION EXECUTOR
+       ================================================================== */
+    const INTERVENTION_ICONS = {
+      'trim-context':   '&#9986;',  // scissors
+      'switch-model':   '&#8645;',  // arrows
+      'cap-output':     '&#128274;', // lock
+      'reuse-cache':    '&#9851;',  // recycle
+      'pause-workflow': '&#9940;'   // stop
+    };
+
+    const INTERVENTION_LABELS = {
+      'trim-context':   'Trim Context',
+      'switch-model':   'Switch Model',
+      'cap-output':     'Cap Output',
+      'reuse-cache':    'Reuse Cache',
+      'pause-workflow': 'Pause Workflow'
+    };
+
+    let interventionIdCounter = 0;
+
+    function applyIntervention(type, useCase, params, diagnosisId, autoApply, severity, policyRef, savingMicrocents, reason) {
+      const id = ++interventionIdCounter;
+      const timestamp = tsNow();
+
+      // Apply side effects
+      if (autoApply) {
+        if (type === 'trim-context') {
+          state.ucState[useCase].trimActive = true;
+          state.cacheActive = true;
+        } else if (type === 'switch-model') {
+          state.ucState[useCase].modelOverride = params.targetModel;
+        } else if (type === 'reuse-cache') {
+          state.cacheActive = true;
+        } else if (type === 'pause-workflow') {
+          state.ucState[useCase].circuitOpen = true;
+          updateAlertBanner(true, `Circuit breaker activated — ${USE_CASES[useCase].name} workflow suspended. Engineering review recommended.`);
+          state.alerts.push({ severity: 'critical', msg: `Circuit breaker on ${USE_CASES[useCase].name}` });
+          addScenarioEvent('action', `Circuit breaker opened — ${USE_CASES[useCase].name} workflow suspended`);
+        }
+      }
+
+      const savingDisplay = displayCost(savingMicrocents);
+
+      // Audit log entry
+      const auditLine1 = `[${timestamp}] ${type.toUpperCase().replace(/-/g, '_')} → ${useCase}`;
+      const auditLine2 = `Policy: ${policyRef} | Saving: ${savingDisplay}/hr`;
+      state.agent.auditLog.unshift({ line1: auditLine1, line2: auditLine2 });
+      if (state.agent.auditLog.length > 50) state.agent.auditLog.length = 50;
+
+      // Intervention record
+      const record = {
+        id, type, useCase, params, diagnosisId,
+        autoApply, severity, policyRef,
+        savingMicrocents, reason, timestamp,
+        applied: autoApply
+      };
+      state.agent.interventions.unshift(record);
+      if (state.agent.interventions.length > 30) state.agent.interventions.length = 30;
+
+      // Accumulate savings
+      if (autoApply) {
+        state.spend.savedMicrocents += savingMicrocents;
+      }
+
+      addScenarioEvent('action', `${INTERVENTION_LABELS[type]} applied to ${USE_CASES[useCase].name}`);
+
+      // Impact row for executive summary
+      state.impactRows.unshift({
+        scenario: state.activeScenario || type,
+        useCase,
+        anomaly: type,
+        action: INTERVENTION_LABELS[type],
+        costBefore: 0, // updated by rules
+        costAfter: 0,
+        savings: savingMicrocents,
+        timestamp
+      });
+    }
+
+    function applyRecommendationIntervention(interventionId) {
+      const rec = state.agent.interventions.find(i => i.id === interventionId);
+      if (!rec || rec.applied) return;
+      rec.applied = true;
+
+      if (rec.type === 'trim-context') {
+        state.ucState[rec.useCase].trimActive = true;
+        state.cacheActive = true;
+      } else if (rec.type === 'switch-model') {
+        state.ucState[rec.useCase].modelOverride = rec.params.targetModel;
+      } else if (rec.type === 'reuse-cache') {
+        state.cacheActive = true;
+      }
+
+      state.spend.savedMicrocents += rec.savingMicrocents;
+      const ts = tsNow();
+      state.agent.auditLog.unshift({
+        line1: `[${ts}] MANUAL-APPLY → ${rec.useCase}`,
+        line2: `Type: ${rec.type} | Saving: ${displayCost(rec.savingMicrocents)}/hr`
+      });
+      renderActivePanel();
+    }
+
+    /* ==================================================================
+       RULES ENGINE
+       ================================================================== */
+    function checkCooldown(ruleId, cooldownTicks) {
+      const last = state.ruleCooldowns[ruleId] || -999;
+      return (state.tick - last) >= cooldownTicks;
+    }
+
+    function setCooldown(ruleId) {
+      state.ruleCooldowns[ruleId] = state.tick;
+    }
+
+    function addDiagnosis(ruleId, severity, msg, policyRef, action, useCase) {
+      const diag = {
+        id: ruleId + '-' + state.tick,
+        ruleId, severity, msg, policyRef, action, useCase,
+        timestamp: tsNow(),
+        tick: state.tick
+      };
+      state.agent.diagnoses.unshift(diag);
+      if (state.agent.diagnoses.length > 20) state.agent.diagnoses.length = 20;
+
+      // Also add as policy alert
+      state.alerts = state.alerts.filter(a => a.ruleId !== ruleId);
+      state.alerts.push({ ruleId, severity, msg: msg.substring(0, 100) });
+
+      addScenarioEvent('detect', `[${severity.toUpperCase()}] ${msg.substring(0, 80)}...`);
+      return diag;
+    }
+
+    function runRules() {
+      const requests = state.requests;
+
+      /* --- RULE 1: PROMPT BLOAT --- */
+      if (checkCooldown('prompt-bloat', 5)) {
+        const recent = checkLastN('doc-summarizer', 3, r => r.inputTokens > 3000);
+        if (recent.length === 3) {
+          const avgInput = recent.reduce((s, r) => s + r.inputTokens, 0) / 3;
+          const severity = avgInput >= 7000 ? 'critical' : 'warning';
+          const multiple = (avgInput / 1000 / 2).toFixed(1);
+          const hrExcess = ((avgInput - 2000) / 1000 * MODELS['claude-3-sonnet'].inputPer1k * 60).toFixed(2);
+
+          const msg = `Document Summarizer is sending ${(avgInput/1000).toFixed(1)}k input tokens per request — ${multiple}x above the 2k policy limit. This inflates cost without proportional quality gain. Estimated excess spend: $${hrExcess}/hr.`;
+          const diag = addDiagnosis('prompt-bloat', severity, msg,
+            'Policy MAX_DOC_SUMMARIZER_INPUT: Maximum 2,000 input tokens per doc-summarizer request',
+            'trim-context', 'doc-summarizer'
+          );
+
+          // Estimate savings
+          const savingMicrocents = Math.round((avgInput - 2000) / 1000 * MODELS['claude-3-sonnet'].inputPer1k * 3600 * 1_000_000);
+
+          applyIntervention('trim-context', 'doc-summarizer', {}, diag.id, true, severity,
+            'MAX_DOC_SUMMARIZER_INPUT', savingMicrocents,
+            `Input tokens ${(avgInput/1000).toFixed(1)}k exceeds 2k limit`);
+
+          applyIntervention('reuse-cache', 'doc-summarizer', {}, diag.id, true, severity,
+            'MAX_DOC_SUMMARIZER_INPUT', Math.round(savingMicrocents * 0.3),
+            'Cache reuse reduces repeat processing costs');
+
+          setCooldown('prompt-bloat');
+        }
+      }
+
+      /* --- RULE 2: PREMIUM ROUTING --- */
+      if (checkCooldown('premium-routing', 5)) {
+        const premiumReqs = checkLastN('support-copilot', 5, r => MODELS[r.model] && MODELS[r.model].tier === 'premium');
+        if (premiumReqs.length >= 4) {
+          const model = premiumReqs[0].model;
+          const inputCost = MODELS[model].inputPer1k;
+          const stdCost = MODELS['gpt-3.5-turbo'].inputPer1k;
+          const ratio = (inputCost / stdCost).toFixed(0);
+
+          const msg = `Support Copilot is routing ${premiumReqs.length} of last 5 requests to ${MODELS[model].name} (premium tier, $${inputCost}/1k tokens). FAQ and support intents qualify for standard-tier routing at ${ratio}x lower cost. Re-routing autonomously.`;
+          const diag = addDiagnosis('premium-routing', 'warning', msg,
+            'Policy SUPPORT_COPILOT_MAX_MODEL_TIER: Support Copilot must use standard or economy tier models',
+            'switch-model', 'support-copilot'
+          );
+
+          const avgInput = premiumReqs.reduce((s,r) => s+r.inputTokens, 0) / premiumReqs.length;
+          const savingMicrocents = Math.round((inputCost - stdCost) / 1000 * avgInput * 3600 * 1_000_000);
+
+          applyIntervention('switch-model', 'support-copilot', { targetModel: 'gpt-3.5-turbo' }, diag.id, true, 'warning',
+            'SUPPORT_COPILOT_MAX_MODEL_TIER', savingMicrocents,
+            `Re-routing from ${MODELS[model].name} to GPT-3.5 Turbo`);
+
+          setCooldown('premium-routing');
+        }
+      }
+
+      /* --- RULE 3: RETRY STORM --- */
+      if (checkCooldown('retry-storm', 5)) {
+        const stormReqs = checkLastN('proposal-assistant', 3, r => r.retryCount >= POLICY.MAX_RETRIES_PER_REQUEST);
+        if (stormReqs.length === 3) {
+          const avgRetries = stormReqs.reduce((s,r) => s + r.retryCount, 0) / 3;
+          const multiple = (avgRetries / POLICY.MAX_RETRIES_PER_REQUEST).toFixed(1);
+
+          const msg = `Proposal Assistant is averaging ${avgRetries.toFixed(1)} retries per request — ${multiple}x above the maximum of 3. Root cause: upstream tool failure causing cascading retry loops. Circuit breaker activated. Workflow suspended pending engineering review.`;
+          const diag = addDiagnosis('retry-storm', 'critical', msg,
+            'Policy MAX_RETRIES_PER_REQUEST: Workflows exceeding 3 retries trigger automatic circuit breaker',
+            'pause-workflow', 'proposal-assistant'
+          );
+
+          const avgCost = stormReqs.reduce((s,r) => s + r.costMicrocents, 0) / 3;
+          const savingMicrocents = Math.round(avgCost * (avgRetries - POLICY.MAX_RETRIES_PER_REQUEST) * 3600);
+
+          applyIntervention('pause-workflow', 'proposal-assistant', {}, diag.id, true, 'critical',
+            'MAX_RETRIES_PER_REQUEST', savingMicrocents,
+            `Average retries ${avgRetries.toFixed(1)} exceeds circuit breaker threshold of ${POLICY.CIRCUIT_BREAKER_THRESHOLD}`);
+
+          setCooldown('retry-storm');
+        }
+      }
+
+      /* --- RULE 4: SPEND RATE --- */
+      if (checkCooldown('spend-rate', 10)) {
+        const last10 = requests.slice(-10);
+        if (last10.length === 10) {
+          const totalSpend = last10.reduce((s, r) => s + r.costMicrocents, 0);
+          const firstHalf  = last10.slice(0, 5).reduce((s, r) => s + r.costMicrocents, 0);
+          const secondHalf = last10.slice(5).reduce((s, r)  => s + r.costMicrocents, 0);
+          if (firstHalf > 0 && secondHalf > firstHalf * 2) {
+            const ratio = (secondHalf / firstHalf).toFixed(1);
+            const msg = `Spend rate is ${ratio}x above baseline over the last 10 requests. Review active workflows for optimization opportunities.`;
+            addDiagnosis('spend-rate', 'info', msg,
+              'Policy: Monitor spend rate spikes for optimization',
+              null, null
+            );
+            setCooldown('spend-rate');
+          }
+        }
+      }
+    }
+
+    /* ==================================================================
+       REQUEST GENERATOR
+       ================================================================== */
+    const BASELINE_CONFIG = {
+      'doc-summarizer': {
+        model: 'claude-3-sonnet',
+        inputMin: 800, inputMax: 2000,
+        outputMin: 200, outputMax: 600,
+        retries: 0
+      },
+      'support-copilot': {
+        model: 'gpt-3.5-turbo',
+        inputMin: 200, inputMax: 800,
+        outputMin: 150, outputMax: 400,
+        retries: 0
+      },
+      'proposal-assistant': {
+        model: 'claude-3-haiku',
+        inputMin: 400, inputMax: 1200,
+        outputMin: 300, outputMax: 800,
+        retries: 0
+      }
+    };
+
+    function generateRequest(useCase) {
+      const uc = state.ucState[useCase];
+
+      // Circuit breaker — skip entirely
+      if (uc.circuitOpen) return null;
+
+      const base = BASELINE_CONFIG[useCase];
+      let model = uc.modelOverride || base.model;
+      let inputTokens, outputTokens, retryCount, anomaly;
+
+      // Scenario injection
+      if (state.activeScenario === 'prompt-bloat' && useCase === 'doc-summarizer') {
+        if (!uc.trimActive) {
+          inputTokens  = rngRange(scenarioRng, 6000, 12000);
+          outputTokens = rngRange(scenarioRng, base.outputMin, base.outputMax);
+          retryCount   = 0;
+          anomaly      = 'prompt-bloat';
+        } else {
+          inputTokens  = rngRange(baselineRng, base.inputMin, base.inputMax);
+          outputTokens = rngRange(baselineRng, base.outputMin, base.outputMax);
+          retryCount   = 0;
+          anomaly      = null;
+        }
+      } else if (state.activeScenario === 'premium-routing' && useCase === 'support-copilot') {
+        if (!uc.modelOverride) {
+          model        = 'gpt-4-turbo';
+          inputTokens  = rngRange(scenarioRng, base.inputMin, base.inputMax);
+          outputTokens = rngRange(scenarioRng, base.outputMin, base.outputMax);
+          retryCount   = 0;
+          anomaly      = 'premium-routing';
+        } else {
+          inputTokens  = rngRange(baselineRng, base.inputMin, base.inputMax);
+          outputTokens = rngRange(baselineRng, base.outputMin, base.outputMax);
+          retryCount   = 0;
+          anomaly      = null;
+        }
+      } else if (state.activeScenario === 'retry-storm' && useCase === 'proposal-assistant') {
+        if (!uc.circuitOpen) {
+          model        = 'claude-3-sonnet';
+          inputTokens  = rngRange(scenarioRng, base.inputMin, base.inputMax);
+          outputTokens = rngRange(scenarioRng, base.outputMin, base.outputMax);
+          retryCount   = rngRange(scenarioRng, 4, 8);
+          anomaly      = 'retry-storm';
+        } else {
+          return null;
+        }
+      } else {
+        // Normal baseline
+        inputTokens  = rngRange(baselineRng, base.inputMin, base.inputMax);
+        outputTokens = rngRange(baselineRng, base.outputMin, base.outputMax);
+        retryCount   = 0;
+        anomaly      = null;
+      }
+
+      // Cache simulation
+      let fromCache = false;
+      if (state.cacheActive && baselineRng() < 0.30) {
+        fromCache = true;
+      }
+
+      const baseCostMicrocents = fromCache ? 0 : calcCostMicrocents(model, inputTokens, outputTokens);
+      const costMicrocents = fromCache ? 0 : baseCostMicrocents * (retryCount + 1);
+
+      const req = {
+        id: ++state.requestIdCounter,
+        useCase,
+        model,
+        inputTokens,
+        outputTokens,
+        retryCount,
+        costMicrocents,
+        fromCache,
+        anomaly,
+        status: uc.circuitOpen ? 'blocked' : (fromCache ? 'cache' : 'ok'),
+        timestamp: tsNow(),
+        tick: state.tick
+      };
+
+      return req;
+    }
+
+    function commitRequest(req) {
+      if (!req) return;
+
+      state.requests.push(req);
+      if (state.requests.length > 100) state.requests.shift();
+
+      state.spend.totalMicrocents += req.costMicrocents;
+      state.spend.byUseCase[req.useCase] = (state.spend.byUseCase[req.useCase] || 0) + req.costMicrocents;
+    }
+
+    /* ==================================================================
+       SIMULATION TICK
+       ================================================================== */
+    function simulationTick() {
+      if (!state.running) return;
+
+      state.tick++;
+
+      if (state.activeScenario !== null) {
+        state.scenarioTick++;
+      }
+
+      // Generate requests for each use case (~60-80% probability)
+      for (const uc of Object.keys(USE_CASES)) {
+        const prob = 0.60 + baselineRng() * 0.20; // 60-80%
+        if (baselineRng() < prob) {
+          const req = generateRequest(uc);
+          commitRequest(req);
+        }
+      }
+
+      // Run rules engine
+      runRules();
+
+      // Check scenario completion
+      if (state.activeScenario && state.scenarioTick >= 30) {
+        completeScenario();
+      }
+    }
+
+    function completeScenario() {
+      const sc = state.activeScenario;
+      addScenarioEvent('info', `Scenario "${sc}" completed after ${state.scenarioTick} ticks`);
+
+      // Reset intervention side effects on scenario completion
+      state.ucState['doc-summarizer'].trimActive = false;
+      state.ucState['support-copilot'].modelOverride = null;
+      state.ucState['proposal-assistant'].circuitOpen = false;
+      state.cacheActive = false;
+      updateAlertBanner(false, '');
+
+      state.activeScenario = null;
+      state.scenarioTick   = 0;
+
+      // Re-enable scenario buttons
+      document.querySelectorAll('.btn-scenario').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('running');
+        btn.innerHTML = 'Trigger Scenario';
+      });
+
+      // Update scenario card status
+      ['prompt-bloat','premium-routing','retry-storm'].forEach(id => {
+        const el = document.getElementById('sc-status-' + id);
+        if (el) {
+          el.className = 'scenario-status idle';
+          el.textContent = 'Ready to simulate';
+        }
+        const card = document.getElementById('sc-card-' + id);
+        if (card) { card.classList.remove('active', 'complete'); }
+      });
+    }
+
+    /* ==================================================================
+       SCENARIO TRIGGER
+       ================================================================== */
+    function triggerScenario(name) {
+      if (state.activeScenario !== null) return;
+
+      // Reset scenarioRng to seed 42
+      scenarioRng = makeMulberry32(42);
+
+      state.activeScenario = name;
+      state.scenarioTick   = 0;
+
+      // Disable all scenario buttons
+      document.querySelectorAll('.btn-scenario').forEach(btn => {
+        btn.disabled = true;
+      });
+
+      // Mark the triggered button as running
+      const btn = document.getElementById('btn-' + name);
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('running');
+        btn.innerHTML = '<span class="spinner"></span>Running...';
+      }
+
+      // Mark card active
+      const card = document.getElementById('sc-card-' + name);
+      if (card) card.classList.add('active');
+
+      addScenarioEvent('info', `Scenario "${name}" triggered — anomaly injection starting`);
+
+      // Switch to scenarios tab to show progress
+      switchTab('scenarios');
+    }
+
+    /* ==================================================================
+       ALERT BANNER
+       ================================================================== */
+    function updateAlertBanner(show, msg) {
+      const banner = document.getElementById('alert-banner');
+      const text   = document.getElementById('alert-banner-text');
+      if (show) {
+        text.textContent = msg;
+        banner.classList.add('visible');
+      } else {
+        banner.classList.remove('visible');
+      }
+    }
+
+    /* ==================================================================
+       RESET ALL
+       ================================================================== */
+    function resetAll() {
+      // Rebuild state but preserve running=true
+      state = buildInitialState();
+      state.running = true;
+
+      // Reset scenarioRng and baselineRng
+      scenarioRng = makeMulberry32(42);
+      baselineRng = makeMulberry32(100);
+
+      // Re-enable buttons
+      document.querySelectorAll('.btn-scenario').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('running');
+        btn.innerHTML = 'Trigger Scenario';
+      });
+
+      // Reset scenario cards
+      ['prompt-bloat','premium-routing','retry-storm'].forEach(id => {
+        const el = document.getElementById('sc-status-' + id);
+        if (el) { el.className = 'scenario-status idle'; el.textContent = 'Ready to simulate'; }
+        const card = document.getElementById('sc-card-' + id);
+        if (card) { card.classList.remove('active', 'complete'); }
+
+        for (let i = 0; i < 5; i++) {
+          const dot = document.getElementById('prog-' + id + '-' + i);
+          if (dot) dot.className = 'stage-dot';
+        }
+      });
+
+      updateAlertBanner(false, '');
+
+      // Update status dot
+      document.getElementById('status-dot').className = 'status-dot';
+      document.getElementById('status-text').textContent = 'Running';
+
+      renderActivePanel();
+    }
+
+    /* ==================================================================
+       RENDER HELPERS
+       ================================================================== */
+    function renderBarChart(containerId, data) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const maxVal = Math.max(...data.map(d => d.value), 1);
+
+      container.innerHTML = data.map(d => {
+        const pct = Math.max((d.value / maxVal) * 100, 0).toFixed(1);
+        return `
+          <div class="bar-row">
+            <div class="bar-label" title="${d.label}">${d.label}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%;background:${d.color}"></div>
+            </div>
+            <div class="bar-tag">${d.tag}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderMetricCard(valueId, value, subId, sublabel, valueClass) {
+      const vEl = document.getElementById(valueId);
+      const sEl = document.getElementById(subId);
+      if (vEl) { vEl.textContent = value; vEl.className = 'metric-value' + (valueClass ? ' ' + valueClass : ''); }
+      if (sEl) sEl.textContent = sublabel;
+    }
+
+    function getAnomalyBadge(req) {
+      if (req.status === 'blocked')     return '<span class="badge badge-red">BLOCKED</span>';
+      if (req.fromCache)                return '<span class="badge badge-teal">Cache Hit</span>';
+      if (req.anomaly === 'prompt-bloat')    return '<span class="badge badge-purple">Prompt Bloat</span>';
+      if (req.anomaly === 'premium-routing') return '<span class="badge badge-orange">Premium Routing</span>';
+      if (req.anomaly === 'retry-storm')     return '<span class="badge badge-red">Retry Storm</span>';
+      return '';
+    }
+
+    /* ==================================================================
+       RENDER OVERVIEW
+       ================================================================== */
+    function renderOverview() {
+      const { spend, requests, agent, alerts } = state;
+
+      // Metric Cards
+      renderMetricCard('mv-total-spend', displayCost(spend.totalMicrocents),
+        'ms-total-spend', 'across all use cases', '');
+
+      const effGain = spend.totalMicrocents > 0
+        ? ((spend.savedMicrocents / (spend.totalMicrocents + spend.savedMicrocents)) * 100).toFixed(1)
+        : '0';
+      renderMetricCard('mv-saved', displayCost(spend.savedMicrocents),
+        'ms-saved', `${effGain}% efficiency gain`, 'green');
+
+      const cacheHits = requests.filter(r => r.fromCache).length;
+      renderMetricCard('mv-requests', requests.length,
+        'ms-requests', `${cacheHits} cache hits`, 'accent');
+
+      const alertCount = alerts.length;
+      const ivCount    = agent.interventions.filter(i => i.applied).length;
+      const alertClass = alertCount > 0 ? 'red' : '';
+      renderMetricCard('mv-alerts', alertCount,
+        'ms-alerts', `${ivCount} interventions applied`, alertClass);
+
+      // Spend by Use Case chart
+      const spendData = Object.entries(USE_CASES).map(([key, uc]) => ({
+        label: uc.name,
+        value: spend.byUseCase[key] || 0,
+        color: uc.color,
+        tag: displayCost(spend.byUseCase[key] || 0)
+      }));
+      renderBarChart('chart-spend-usecase', spendData);
+
+      // Model Distribution chart
+      const modelCounts = {};
+      requests.forEach(r => { modelCounts[r.model] = (modelCounts[r.model] || 0) + 1; });
+      const modelColors = {
+        'claude-3-opus':   '#bc8cff',
+        'gpt-4-turbo':     '#f0883e',
+        'claude-3-sonnet': '#58a6ff',
+        'gpt-3.5-turbo':   '#3fb950',
+        'claude-3-haiku':  '#2ea043'
+      };
+      const modelData = Object.entries(MODELS)
+        .filter(([k]) => modelCounts[k])
+        .map(([k, m]) => ({
+          label: m.name,
+          value: modelCounts[k] || 0,
+          color: modelColors[k],
+          tag: (modelCounts[k] || 0) + ' req'
+        }));
+      if (modelData.length) renderBarChart('chart-model-dist', modelData);
+      else document.getElementById('chart-model-dist').innerHTML =
+        '<div class="empty-state" style="padding:12px"><p>No requests yet.</p></div>';
+
+      // Policy Alerts
+      const alertsSection = document.getElementById('policy-alerts-section');
+      const alertsList    = document.getElementById('policy-alerts-list');
+      if (alerts.length > 0) {
+        alertsSection.style.display = 'block';
+        alertsList.innerHTML = alerts.slice(-10).map(a => `
+          <div class="alert-row ${a.severity}">
+            <span class="alert-severity">${a.severity}</span>
+            <span class="alert-text">${escHtml(a.msg)}</span>
+          </div>
+        `).join('');
+      } else {
+        alertsSection.style.display = 'none';
+      }
+    }
+
+    /* ==================================================================
+       RENDER STREAM
+       ================================================================== */
+    function renderStream() {
+      const tbody = document.getElementById('stream-tbody');
+      const empty = document.getElementById('stream-empty');
+      const count = document.getElementById('stream-req-count');
+
+      const last50 = state.requests.slice(-50).reverse();
+
+      count.textContent = state.requestIdCounter + ' requests';
+
+      if (last50.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      tbody.innerHTML = last50.map(r => {
+        const uc = USE_CASES[r.useCase];
+        const m  = MODELS[r.model] || { name: r.model };
+        const costStr = r.fromCache ? '<span class="text-teal">$0 (cached)</span>' : displayCost(r.costMicrocents);
+        const retryStr = r.retryCount > 3
+          ? `<span class="text-red">${r.retryCount}</span>`
+          : r.retryCount > 0 ? `<span class="text-yellow">${r.retryCount}</span>` : '0';
+        const statusBadge = r.status === 'blocked'
+          ? '<span class="badge badge-red">BLOCKED</span>'
+          : r.fromCache
+            ? '<span class="badge badge-teal">Cached</span>'
+            : '<span class="badge badge-green">OK</span>';
+
+        return `
+          <tr>
+            <td class="font-mono text-dim">#${r.id}</td>
+            <td>
+              <span class="use-case-dot" style="background:${uc.color}"></span>
+              <span>${uc.name}</span>
+            </td>
+            <td class="text-muted">${m.name}</td>
+            <td class="font-mono">${r.inputTokens.toLocaleString()}</td>
+            <td class="font-mono">${r.outputTokens.toLocaleString()}</td>
+            <td class="font-mono">${costStr}</td>
+            <td>${retryStr}</td>
+            <td>${statusBadge}</td>
+            <td>${getAnomalyBadge(r)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /* ==================================================================
+       RENDER AGENT CONSOLE
+       ================================================================== */
+    function renderAgent() {
+      // Diagnoses
+      const diagList = document.getElementById('diagnoses-list');
+      if (state.agent.diagnoses.length === 0) {
+        diagList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#128269;</div>
+            <p>No anomalies detected yet.</p>
+            <p>Run a scenario to trigger agent analysis.</p>
+          </div>`;
+      } else {
+        diagList.innerHTML = state.agent.diagnoses.map(d => `
+          <div class="diagnosis-item ${d.severity}">
+            <div class="diagnosis-header">
+              <span class="diagnosis-rule">${d.ruleId}</span>
+              <span class="badge badge-${d.severity === 'critical' ? 'red' : d.severity === 'warning' ? 'yellow' : 'blue'}">${d.severity}</span>
+              <span class="diagnosis-time">${d.timestamp}</span>
+            </div>
+            <div class="diagnosis-msg">${escHtml(d.msg)}</div>
+            <div class="diagnosis-policy">${escHtml(d.policyRef)}</div>
+          </div>
+        `).join('');
+      }
+
+      // Audit trail
+      const auditTrail = document.getElementById('audit-trail');
+      if (state.agent.auditLog.length === 0) {
+        auditTrail.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#128196;</div>
+            <p>No interventions logged.</p>
+          </div>`;
+      } else {
+        auditTrail.innerHTML = state.agent.auditLog.map(e => `
+          <div class="audit-entry">
+            <div class="audit-line1">${escHtml(e.line1)}</div>
+            <div class="audit-line2">${escHtml(e.line2)}</div>
+          </div>
+        `).join('');
+      }
+
+      // Interventions table
+      const ivList = document.getElementById('interventions-list');
+      if (state.agent.interventions.length === 0) {
+        ivList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#9881;</div>
+            <p>No interventions applied yet.</p>
+          </div>`;
+      } else {
+        ivList.innerHTML = state.agent.interventions.map(iv => {
+          const applyBadge = iv.autoApply
+            ? '<span class="badge badge-green">AUTO-APPLIED</span>'
+            : iv.applied
+              ? '<span class="badge badge-green">APPLIED</span>'
+              : '<span class="badge badge-blue">RECOMMENDATION</span>';
+
+          const applyBtn = (!iv.autoApply && !iv.applied)
+            ? `<button class="btn-apply" onclick="applyRecommendationIntervention(${iv.id})">Apply Now</button>`
+            : '';
+
+          return `
+            <div class="intervention-row ${iv.severity}">
+              <div class="intervention-icon">${INTERVENTION_ICONS[iv.type] || '&#9881;'}</div>
+              <div class="intervention-details">
+                <div class="intervention-title">${INTERVENTION_LABELS[iv.type]} — ${USE_CASES[iv.useCase] ? USE_CASES[iv.useCase].name : iv.useCase}</div>
+                <div class="intervention-sub">${escHtml(iv.reason)}</div>
+                <div class="intervention-sub text-dim">${iv.timestamp} &bull; Est. saving: ${displayCost(iv.savingMicrocents)}/hr</div>
+                <div class="intervention-badges">${applyBadge}${applyBtn}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    /* ==================================================================
+       RENDER SCENARIOS
+       ================================================================== */
+    function renderScenarios() {
+      const scenarios = ['prompt-bloat', 'premium-routing', 'retry-storm'];
+
+      scenarios.forEach(id => {
+        const stEl   = document.getElementById('sc-status-' + id);
+        const card   = document.getElementById('sc-card-' + id);
+        const isThis = state.activeScenario === id;
+        const tick   = isThis ? state.scenarioTick : 0;
+
+        let statusText  = 'Ready to simulate';
+        let statusClass = 'idle';
+        let stageStates = [false, false, false, false, false]; // done flags
+        let stageCls    = ['', '', '', '', ''];
+
+        if (isThis || (state.activeScenario === null && card && card.classList.contains('complete'))) {
+          if (tick >= 30) {
+            statusText  = 'Scenario complete';
+            statusClass = 'complete';
+            stageCls    = ['done','done','done','done','done'];
+          } else if (tick >= 20) {
+            statusText  = 'Behavior normalized';
+            statusClass = 'normalized';
+            stageCls    = ['done','done','done','done','done'];
+          } else if (tick >= 5) {
+            statusText  = 'Intervention applied';
+            statusClass = 'applied';
+            stageCls    = ['done','done','done', tick >= 15 ? 'done' : 'active', tick >= 20 ? 'done' : ''];
+          } else if (tick >= 3) {
+            statusText  = 'Agent detecting';
+            statusClass = 'detecting';
+            stageCls    = ['done','done','detecting','',''];
+          } else if (tick >= 1) {
+            statusText  = 'Anomaly building';
+            statusClass = 'building';
+            stageCls    = ['active', tick >= 2 ? 'active' : '', '','',''];
+          }
+        }
+
+        if (stEl) {
+          stEl.className  = 'scenario-status ' + statusClass;
+          stEl.textContent = statusText;
+        }
+
+        for (let i = 0; i < 5; i++) {
+          const dot = document.getElementById('prog-' + id + '-' + i);
+          if (dot) dot.className = 'stage-dot ' + (stageCls[i] || '');
+        }
+      });
+
+      // Scenario events log
+      const evBody = document.getElementById('scenario-events-body');
+      if (state.scenarioEvents.length === 0) {
+        evBody.innerHTML = '<div class="empty-state" style="padding:20px"><p>Trigger a scenario to see real-time event log.</p></div>';
+      } else {
+        evBody.innerHTML = state.scenarioEvents.slice(0, 30).map(e => `
+          <div class="event-item">
+            <span class="event-time">${e.time}</span>
+            <span class="event-msg">${escHtml(e.msg)}</span>
+            <span class="event-type ${e.type}">${e.type.toUpperCase()}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    /* ==================================================================
+       RENDER EXECUTIVE SUMMARY
+       ================================================================== */
+    function renderExecutive() {
+      const { spend, requests, agent } = state;
+
+      // Time
+      document.getElementById('exec-time').textContent = 'Report as of ' + tsNow();
+
+      // KPIs
+      document.getElementById('kpi-saved').textContent = displayCost(spend.savedMicrocents);
+
+      const incidents = agent.diagnoses.length;
+      document.getElementById('kpi-incidents').textContent = incidents;
+
+      const applied = agent.interventions.filter(i => i.applied).length;
+      document.getElementById('kpi-interventions').textContent = applied;
+
+      const effPct = (spend.totalMicrocents + spend.savedMicrocents) > 0
+        ? ((spend.savedMicrocents / (spend.totalMicrocents + spend.savedMicrocents)) * 100).toFixed(1)
+        : '0';
+      document.getElementById('kpi-efficiency').textContent = effPct + '%';
+
+      // Narrative
+      const narrativeEl = document.getElementById('exec-narrative');
+
+      if (state.requests.length === 0) {
+        narrativeEl.innerHTML = '<strong>TokenOps Agent</strong> is live and monitoring. Trigger a scenario to see the agent detect and respond to cost anomalies in real time.';
+      } else {
+
+      const cbOpen = Object.values(state.ucState).some(u => u.circuitOpen);
+      const topIv  = agent.interventions.find(i => i.applied);
+      const anomalyRate = requests.length > 0
+        ? ((requests.filter(r => r.anomaly).length / requests.length) * 100).toFixed(1)
+        : '0';
+
+      let narrative = `<strong>TokenOps Agent</strong> has monitored <strong>${requests.length}</strong> requests across 3 workflows. `;
+      narrative += `Total spend: <strong>${displayCost(spend.totalMicrocents)}</strong> | `;
+      narrative += `Spend avoided by agent: <strong>${displayCost(spend.savedMicrocents)}</strong> (<strong>${effPct}%</strong> efficiency gain). `;
+
+      if (topIv) {
+        narrative += `Highest-impact intervention: <strong>${INTERVENTION_LABELS[topIv.type]}</strong> on <strong>${USE_CASES[topIv.useCase].name}</strong>, saving <strong>${displayCost(topIv.savingMicrocents)}/hr</strong>. `;
+      }
+      if (cbOpen) {
+        narrative += `<strong class="text-red">&#9888; proposal-assistant workflow paused</strong> — engineering review recommended. `;
+      }
+      if (parseFloat(anomalyRate) > 0) {
+        const wouldHave = (spend.totalMicrocents + spend.savedMicrocents) > 0
+          ? ((spend.savedMicrocents / (spend.totalMicrocents + spend.savedMicrocents)) * 100).toFixed(1)
+          : '0';
+        narrative += `At current rates, TokenOps Agent deflected <strong>${wouldHave}%</strong> of potential spend.`;
+      } else {
+        narrative += 'No anomalies detected yet. Trigger a scenario to see the agent in action.';
+      }
+
+      narrativeEl.innerHTML = narrative;
+
+      } // end else (requests.length > 0)
+
+      // Impact table
+      const impactTbody = document.getElementById('impact-tbody');
+      const impactEmpty = document.getElementById('impact-empty');
+
+      if (state.impactRows.length === 0) {
+        impactTbody.innerHTML = '';
+        impactEmpty.style.display = 'block';
+      } else {
+        impactEmpty.style.display = 'none';
+        impactTbody.innerHTML = state.impactRows.map(row => `
+          <tr>
+            <td class="text-muted">${escHtml(row.scenario)}</td>
+            <td>
+              <span class="use-case-dot" style="background:${USE_CASES[row.useCase].color}"></span>
+              ${USE_CASES[row.useCase].name}
+            </td>
+            <td>${escHtml(row.anomaly)}</td>
+            <td>${escHtml(row.action)}</td>
+            <td class="font-mono">—</td>
+            <td class="font-mono">—</td>
+            <td class="font-mono text-green">${displayCost(row.savings)}/hr</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    /* ==================================================================
+       ACTIVE PANEL ROUTER
+       ================================================================== */
+    function renderActivePanel() {
+      switch (activeTab) {
+        case 'overview':   renderOverview();   break;
+        case 'stream':     renderStream();     break;
+        case 'agent':      renderAgent();      break;
+        case 'scenarios':  renderScenarios();  break;
+        case 'executive':  renderExecutive();  break;
+      }
+    }
+
+    /* ==================================================================
+       HTML ESCAPE UTILITY
+       ================================================================== */
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* ==================================================================
+       VISIBILITY CHANGE — PAUSE WHEN HIDDEN
+       ================================================================== */
+    document.addEventListener('visibilitychange', () => {
+      state.running = document.visibilityState !== 'hidden';
+      const dot  = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+      if (state.running) {
+        dot.className = 'status-dot';
+        text.textContent = 'Running';
+      } else {
+        dot.className = 'status-dot paused';
+        text.textContent = 'Paused';
+      }
+    });
+
+    /* ==================================================================
+       KEYBOARD ACCESSIBILITY — TAB SWITCHING WITH ARROW KEYS
+       ================================================================== */
+    const TAB_NAMES = ['overview','stream','agent','scenarios','executive'];
+    document.addEventListener('keydown', e => {
+      if (e.target.classList.contains('tab-btn')) {
+        const idx = TAB_NAMES.indexOf(activeTab);
+        if (e.key === 'ArrowRight') {
+          switchTab(TAB_NAMES[(idx + 1) % TAB_NAMES.length]);
+          document.getElementById('tab-' + TAB_NAMES[(idx + 1) % TAB_NAMES.length]).focus();
+        } else if (e.key === 'ArrowLeft') {
+          switchTab(TAB_NAMES[(idx - 1 + TAB_NAMES.length) % TAB_NAMES.length]);
+          document.getElementById('tab-' + TAB_NAMES[(idx - 1 + TAB_NAMES.length) % TAB_NAMES.length]).focus();
+        }
+      }
+    });
+
+    /* ==================================================================
+       SIMULATION + RENDER INTERVALS
+       ================================================================== */
+    setInterval(simulationTick, 1200);
+    setInterval(renderActivePanel, 300);
+
+    // Initial render
+    renderActivePanel();
+  </script>
+</body>
+</html>
